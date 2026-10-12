@@ -973,3 +973,64 @@ button.support-link:hover {
 .row.switch span {
   margin-top: 1px;
 }
+
+/* ── Postage stamp options ──────────────────────────────────── */
+.stamp-options {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--bg-2);
+}
+.stamp-options input[type='text'] {
+  margin-top: 8px !important;
+}
+.segmented {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--field);
+  border: 1px solid var(--line);
+}
+.segmented button {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  border-radius: 8px;
+  padding: 6px 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.segmented button[aria-checked='true'] {
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+.segmented i {
+  display: inline-block;
+  border: 1.5px dashed currentColor;
+  border-radius: 2px;
+}
+.shape-portrait {
+  width: 11px;
+  height: 14px;
+}
+.shape-square {
+  width: 13px;
+  height: 13px;
+}
+.stamp-guide {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 2px dashed rgba(255, 255, 255, 0.85);
+  border-right: 2px dashed rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}

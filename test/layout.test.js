@@ -68,7 +68,7 @@ test('stamp includes both date and time', () => {
   assert.match(s, /21:41|9:41/);
 });
 
-import { perforations } from '../public/js/layout.js';
+import { perforations, stampGeometry, parseStampValues } from '../public/js/layout.js';
 
 test('stamp perforations sit evenly on all four edges', () => {
   const holes = perforations(1000, 700, 50);
@@ -79,4 +79,21 @@ test('stamp perforations sit evenly on all four edges', () => {
   assert.equal(holes.length, (20 + 14) * 2);
   for (const [x, y] of holes) assert.ok((y === 0 || y === 700 || x === 0 || x === 1000) && x >= 0 && x <= 1000 && y >= 0 && y <= 700);
   assert.equal(top[1][0] - top[0][0], 50); // even spacing
+});
+
+test('stamps are portrait (4:5) or square and fit their slot', () => {
+  const { w, h } = stripLayout(600).frames[0];
+  const p = stampGeometry('portrait', w, h);
+  assert.ok(Math.abs(p.W / p.H - 0.8) < 1e-9);
+  assert.ok(p.W <= w && p.H <= h);
+  assert.ok(p.aspect < 1, 'portrait photo window');
+  const q = stampGeometry('square', w, h, false);
+  assert.equal(q.W, q.H);
+  assert.ok(Math.abs(q.aspect - 1) < 1e-9, 'square window with no text band');
+  assert.ok(stampGeometry('square', w, h, true).win.h < q.win.h);
+});
+
+test('stamp values are parsed from free text', () => {
+  assert.deepEqual(parseStampValues('10, 25 50;100'), ['10', '25', '50', '100']);
+  assert.deepEqual(parseStampValues('  '), []);
 });

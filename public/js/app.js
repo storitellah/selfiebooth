@@ -1,5 +1,5 @@
 import { GROUPS, LOOKS, getLook, applyLook } from './filters.js';
-import { BACKDROPS, DOWNLOAD_DPI, PRINT_DPI, SHOTS, FONTS, stripLayout, coverCrop, renderStrip, renderSheet, canvasToJpeg, formatStamp } from './layout.js';
+import { BACKDROPS, DOWNLOAD_DPI, PRINT_DPI, SHOTS, FONTS, stampGeometry, parseStampValues, stripLayout, coverCrop, renderStrip, renderSheet, canvasToJpeg, formatStamp } from './layout.js';
 import { getPrinterStatus, listPrinters, configurePrinter, printViaServer, printViaBrowser } from './printing.js';
 import { listCameras, openCamera, describeCamera, captureStill, isProCamera } from './camera.js';
 import { SUPPORT } from './config.js';
@@ -11,18 +11,20 @@ const FRAME_ASPECT = stripLayout().aspect;
 // ---------------------------------------------------------------------------
 // Settings (remembered per browser; everything works without storage too)
 
-const DEFAULT_SETTINGS = { look: 'natural', backdrop: 'black', tilt: false, postage: false, autoPrint: true, copies: 1, mirror: true, cameraId: null, eyeline: 'auto' };
+const DEFAULT_SETTINGS = { look: 'natural', backdrop: 'black', tilt: false, postage: false, stampShape: 'portrait', autoPrint: true, copies: 1, mirror: true, cameraId: null, eyeline: 'auto' };
 const settings = { ...DEFAULT_SETTINGS };
 try {
   Object.assign(settings, JSON.parse(localStorage.getItem('selfiestudio') || '{}'));
 } catch {
   /* storage unavailable */
 }
-// The caption changes with every event, so it is never remembered.
+// Caption and stamp text change with every event, so they are never remembered.
 settings.caption = '';
+settings.stampText = '';
+settings.stampValues = '';
 const persist = () => {
   try {
-    const { caption, ...keep } = settings;
+    const { caption, stampText, stampValues, ...keep } = settings;
     localStorage.setItem('selfiestudio', JSON.stringify(keep));
   } catch {
     /* ignore */
@@ -246,6 +248,27 @@ function selectBackdrop(id) {
 }
 
 // ---------------------------------------------------------------------------
+// Postage stamp options + framing guide on the camera preview
+
+function syncStampUi() {
+  $('stampOptions').hidden = !settings.postage;
+  for (const b of document.querySelectorAll('[data-shape]')) b.setAttribute('aria-checked', String(b.dataset.shape === settings.stampShape));
+  const rw = $('reviewShapeWrap');
+  if (rw) rw.hidden = !settings.postage;
+  const rs = $('reviewStampWrap');
+  if (rs) rs.hidden = !settings.postage;
+  // Show which part of the frame ends up inside the stamp window.
+  const guide = $('stampGuide');
+  guide.hidden = !settings.postage;
+  if (settings.postage) {
+    const slot = stripLayout().frames[0];
+    const hasBand = Boolean(settings.stampText.trim() || parseStampValues(settings.stampValues).length);
+    const { aspect } = stampGeometry(settings.stampShape, slot.w, slot.h, hasBand);
+    guide.style.width = `${Math.min(100, (aspect / FRAME_ASPECT) * 100)}%`;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Strip rendering
 
 function stripOptions(overrides = {}) {
@@ -255,6 +278,9 @@ function stripOptions(overrides = {}) {
     caption: settings.caption,
     tilt: settings.tilt,
     postage: settings.postage,
+    stampShape: settings.stampShape,
+    stampText: settings.stampText,
+    stampValues: parseStampValues(settings.stampValues),
     stamp: formatStamp(state.takenAt || new Date()),
     ...overrides,
   };
@@ -430,6 +456,9 @@ function syncReviewSelects() {
   $('reviewBackdrop').value = settings.backdrop;
   $('reviewTilt').checked = settings.tilt;
   $('reviewPostage').checked = settings.postage;
+  $('reviewShape').value = settings.stampShape;
+  $('reviewStampText').value = settings.stampText;
+  syncStampUi();
   $('reviewCaption').value = settings.caption;
 }
 
@@ -440,6 +469,10 @@ async function restyleFromReview() {
   $('tilt').checked = settings.tilt;
   settings.postage = $('reviewPostage').checked;
   $('postage').checked = settings.postage;
+  settings.stampShape = $('reviewShape').value;
+  settings.stampText = $('reviewStampText').value;
+  $('stampText').value = settings.stampText;
+  syncStampUi();
   settings.caption = $('reviewCaption').value;
   $('caption').value = settings.caption;
   persist();
@@ -583,7 +616,26 @@ function init() {
     };
   };
   bindCheck('tilt', 'tilt', refreshStripPreview);
-  bindCheck('postage', 'postage', refreshStripPreview);
+  bindCheck('postage', 'postage', () => {
+    syncStampUi();
+    refreshStripPreview();
+  });
+  for (const b of document.querySelectorAll('[data-shape]')) {
+    b.onclick = () => {
+      settings.stampShape = b.dataset.shape;
+      persist();
+      syncStampUi();
+      refreshStripPreview();
+    };
+  }
+  for (const id of ['stampText', 'stampValues']) {
+    $(id).oninput = () => {
+      settings[id] = $(id).value;
+      syncStampUi();
+      refreshStripPreview();
+    };
+  }
+  syncStampUi();
   bindCheck('autoPrint', 'autoPrint');
   bindCheck('mirror', 'mirror');
   $('eyelineMode').value = settings.eyeline;
@@ -633,11 +685,13 @@ function init() {
   $('reviewBackdrop').onchange = restyleFromReview;
   $('reviewTilt').onchange = restyleFromReview;
   $('reviewPostage').onchange = restyleFromReview;
+  $('reviewShape').onchange = restyleFromReview;
   let captionTimer;
   $('reviewCaption').oninput = () => {
     clearTimeout(captionTimer);
     captionTimer = setTimeout(restyleFromReview, 400);
   };
+  $('reviewStampText').oninput = $('reviewCaption').oninput;
 
   $('printerChip').onclick = openPrinterDialog;
   $('openPrinter').onclick = openPrinterDialog;

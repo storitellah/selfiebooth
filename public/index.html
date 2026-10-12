@@ -50,6 +50,7 @@
         <div class="viewfinder" id="viewfinder">
           <canvas id="preview" aria-label="Live camera preview"></canvas>
           <div class="frame-corners" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+          <div id="stampGuide" class="stamp-guide" hidden aria-hidden="true"></div>
           <div id="lensCue" class="lens-cue" hidden>Look into the camera lens</div>
           <div id="countdown" class="countdown" aria-live="assertive"></div>
           <div id="flash" class="flash" aria-hidden="true"></div>
@@ -88,8 +89,16 @@
           <div class="backdrops" id="backdrops" role="radiogroup" aria-label="Background colour"></div>
           <label class="row switch"><input id="tilt" type="checkbox" /><span></span> Tilt photos like snapshots</label>
           <label class="row switch"><input id="postage" type="checkbox" /><span></span> Vintage postage stamps</label>
+          <div id="stampOptions" class="stamp-options" hidden>
+            <div class="segmented" role="radiogroup" aria-label="Stamp shape">
+              <button type="button" role="radio" data-shape="portrait"><i class="shape-portrait"></i>Portrait</button>
+              <button type="button" role="radio" data-shape="square"><i class="shape-square"></i>Square</button>
+            </div>
+            <input id="stampText" type="text" maxlength="30" placeholder="Stamp text (optional)" autocomplete="off" aria-label="Stamp text" />
+            <input id="stampValues" type="text" maxlength="40" placeholder="Stamp values, e.g. 10, 25, 50, 100 (optional)" autocomplete="off" aria-label="Stamp values" />
+          </div>
           <input id="caption" type="text" maxlength="40" placeholder="Add a caption (optional)" autocomplete="off" aria-label="Caption" />
-          <p class="note">Date and time are printed on every strip. The caption only prints if you type one.</p>
+          <p class="note">Date and time are printed on every strip. The caption and stamp text only print if you type them.</p>
         </div>
 
         <div class="panel-section">
@@ -141,7 +150,9 @@
             <label>Background <select id="reviewBackdrop"></select></label>
             <label class="row"><input id="reviewTilt" type="checkbox" /> Tilt</label>
             <label class="row"><input id="reviewPostage" type="checkbox" /> Stamps</label>
+            <label id="reviewShapeWrap">Shape <select id="reviewShape"><option value="portrait">Portrait</option><option value="square">Square</option></select></label>
             <label class="review-caption">Caption <input id="reviewCaption" type="text" maxlength="40" placeholder="Optional" autocomplete="off" /></label>
+            <label class="review-caption" id="reviewStampWrap">Stamp text <input id="reviewStampText" type="text" maxlength="30" placeholder="Optional" autocomplete="off" /></label>
           </div>
           <div class="sheet-preview" aria-label="4 by 6 print preview">
             <img id="reviewSheet" alt="4 by 6 print sheet with two strips" />
