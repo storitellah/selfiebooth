@@ -1,0 +1,15 @@
+{
+  "name": "selfiebooth",
+  "version": "1.0.0",
+  "description": "Vintage photo booth studio: 4-shot photo strips, light-focused filters, high-res JPG downloads and automatic 4x6 printing to Wi-Fi printers.",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}
