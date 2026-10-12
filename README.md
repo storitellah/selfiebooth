@@ -18,22 +18,14 @@ Open **http://localhost:8080** on the computer the camera is plugged into. Brows
 | **Pro cameras** | Any camera the computer sees as a webcam can be picked from the **Camera** list. That includes DSLR and mirrorless cameras connected with an HDMI capture card (such as Elgato Cam Link) or through USB-C webcam mode. Cameras recognised as professional are marked ★, and mirroring is switched off when you choose one. |
 | **Eye contact** | During the countdown a **Look here** tab drops down from the top-centre of the screen, just under a laptop or phone camera, with the countdown beside it. With an external camera it says **Look into the camera lens** instead. You can change this under *Eye contact guide*. |
 | **Looks** | **Colour** (light-based): Natural Light, Golden Hour, Soft Glow, Sunlit Film, Window Light, Faded Polaroid, Neon Night. **Black & White**: Classic Mono, Noir Spotlight, Silver Screen, Sepia Lamp, Hard Light. **White**: High-Key White, Porcelain, Ghost White, Milk Glass. |
-| **Strip** | Black, Vintage (aged cream paper) or White background, which also sets the studio's colour scheme. Optional **tilt** gives each photo a slight angle and a white snapshot border. The **date and time** of the session is printed on every strip. A **caption** prints only when one is typed. It is never remembered, so every event starts blank. |
+| **Strip** | Black, Vintage (aged cream paper) or White background, which also sets the studio's colour scheme. Optional **tilt** gives each photo a slight angle and a white snapshot border. **Vintage postage stamps** turns each photo into a perforated stamp with an engraved frame, a value (10, 25, 50, 100) and a dated postmark on the first stamp. It works with or without tilt. The **date and time** of the session is printed on every strip. A **caption** prints only when one is typed. It is never remembered, so every event starts blank. |
 | **Download** | A single 2×6 in strip, saved as a JPG at **600 DPI (1200 × 3600 px)**. A "Download 4×6 sheet" button is also available. |
 | **Print** | A **4×6 in portrait sheet with two identical strips side by side** (1200 × 1800 px at 300 DPI). Cut along the long centre line to get two 2×6 strips. |
-| **Restyle** | On the review screen you can change the look, background, tilt or caption, then download or print again. |
+| **Restyle** | On the review screen you can change the look, background, tilt, stamps or caption, then download or print again. |
 
 ## Support links
 
-Selfie Studio is free. A quiet footer invites people to support its development. Add your links in `public/js/config.js`:
-
-```js
-patreon: 'https://www.patreon.com/…',
-kofi: 'https://ko-fi.com/…',
-mpesa: { url: '', text: 'Till 123456' },   // a payment link, or details to display
-```
-
-Any link left empty is hidden.
+Selfie Studio is free. A quiet footer invites people to support its development through [Patreon](https://www.patreon.com/cw/kiberastories), [Ko-fi](https://ko-fi.com/storitellah) or M-Pesa (+254711254986; tapping the button copies the number). To change these, edit `public/js/config.js`. Any link left empty is hidden.
 
 ## Wi-Fi printing
 

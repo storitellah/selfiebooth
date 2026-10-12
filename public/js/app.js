@@ -11,7 +11,7 @@ const FRAME_ASPECT = stripLayout().aspect;
 // ---------------------------------------------------------------------------
 // Settings (remembered per browser; everything works without storage too)
 
-const DEFAULT_SETTINGS = { look: 'natural', backdrop: 'black', tilt: false, autoPrint: true, copies: 1, mirror: true, cameraId: null, eyeline: 'auto' };
+const DEFAULT_SETTINGS = { look: 'natural', backdrop: 'black', tilt: false, postage: false, autoPrint: true, copies: 1, mirror: true, cameraId: null, eyeline: 'auto' };
 const settings = { ...DEFAULT_SETTINGS };
 try {
   Object.assign(settings, JSON.parse(localStorage.getItem('selfiestudio') || '{}'));
@@ -254,6 +254,7 @@ function stripOptions(overrides = {}) {
     backdrop: settings.backdrop,
     caption: settings.caption,
     tilt: settings.tilt,
+    postage: settings.postage,
     stamp: formatStamp(state.takenAt || new Date()),
     ...overrides,
   };
@@ -428,6 +429,7 @@ function syncReviewSelects() {
   look.value = settings.look;
   $('reviewBackdrop').value = settings.backdrop;
   $('reviewTilt').checked = settings.tilt;
+  $('reviewPostage').checked = settings.postage;
   $('reviewCaption').value = settings.caption;
 }
 
@@ -436,6 +438,8 @@ async function restyleFromReview() {
   selectBackdrop($('reviewBackdrop').value);
   settings.tilt = $('reviewTilt').checked;
   $('tilt').checked = settings.tilt;
+  settings.postage = $('reviewPostage').checked;
+  $('postage').checked = settings.postage;
   settings.caption = $('reviewCaption').value;
   $('caption').value = settings.caption;
   persist();
@@ -520,22 +524,37 @@ async function savePrinter(uri) {
 function buildSupport() {
   $('supportMessage').textContent = SUPPORT.message;
   const wrap = $('supportLinks');
-  const links = [
-    { label: 'Patreon', href: SUPPORT.patreon },
-    { label: 'Ko-fi', href: SUPPORT.kofi },
-    { label: 'M-Pesa', href: SUPPORT.mpesa?.url, text: SUPPORT.mpesa?.text },
-  ];
-  for (const l of links) {
-    if (!l.href && !l.text) continue;
-    const el = document.createElement(l.href ? 'a' : 'span');
-    el.className = 'support-link';
-    if (l.href) {
-      el.href = l.href;
-      el.target = '_blank';
-      el.rel = 'noopener';
-    }
-    el.textContent = l.text ? `${l.label} · ${l.text}` : l.label;
-    wrap.append(el);
+  const link = (label, href) => {
+    const a = document.createElement('a');
+    a.className = 'support-link';
+    a.href = href;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.textContent = label;
+    wrap.append(a);
+  };
+  if (SUPPORT.patreon) link('Patreon', SUPPORT.patreon);
+  if (SUPPORT.kofi) link('Ko-fi', SUPPORT.kofi);
+  const mp = SUPPORT.mpesa || {};
+  if (mp.url) link('M-Pesa', mp.url);
+  else if (mp.number) {
+    // No payment link: show the number and copy it on tap.
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'support-link';
+    const label = `M-Pesa · ${mp.number}`;
+    b.textContent = label;
+    b.title = 'Send Money to this number · tap to copy';
+    b.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(mp.number);
+        b.textContent = 'Number copied ✓';
+      } catch {
+        b.textContent = mp.number;
+      }
+      setTimeout(() => (b.textContent = label), 1800);
+    };
+    wrap.append(b);
   }
   wrap.hidden = !wrap.children.length;
 }
@@ -564,6 +583,7 @@ function init() {
     };
   };
   bindCheck('tilt', 'tilt', refreshStripPreview);
+  bindCheck('postage', 'postage', refreshStripPreview);
   bindCheck('autoPrint', 'autoPrint');
   bindCheck('mirror', 'mirror');
   $('eyelineMode').value = settings.eyeline;
@@ -612,6 +632,7 @@ function init() {
   $('reviewLook').onchange = restyleFromReview;
   $('reviewBackdrop').onchange = restyleFromReview;
   $('reviewTilt').onchange = restyleFromReview;
+  $('reviewPostage').onchange = restyleFromReview;
   let captionTimer;
   $('reviewCaption').oninput = () => {
     clearTimeout(captionTimer);

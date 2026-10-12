@@ -126,6 +126,129 @@ export function tiltScale(w, h, deg, spillX, spillY) {
   return Math.min(1, (w + spillX * 2) / bw, (h + spillY * 2) / bh);
 }
 
+// ---------------------------------------------------------------------------
+// Vintage postage stamps
+
+export const STAMP_INKS = ['#9a3b2e', '#2f5d62', '#b0832f', '#3b4a7a'];
+export const STAMP_VALUES = ['10', '25', '50', '100'];
+
+/** Centres of the perforation holes along all four edges of a w x h stamp. */
+export function perforations(w, h, pitch) {
+  const holes = [];
+  const along = (len) => {
+    const n = Math.max(2, Math.round(len / pitch));
+    const step = len / n;
+    return Array.from({ length: n }, (_, k) => step * (k + 0.5));
+  };
+  for (const x of along(w)) holes.push([x, 0], [x, h]);
+  for (const y of along(h)) holes.push([0, y], [w, y]);
+  return holes;
+}
+
+function drawPostmark(ctx, cx, cy, r, text, ink) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'multiply';
+  ctx.strokeStyle = ink;
+  ctx.fillStyle = ink;
+  ctx.globalAlpha = 0.62;
+  ctx.lineWidth = r * 0.06;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.lineWidth = r * 0.035;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * 0.8, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  fitFont(ctx, 'SELFIE STUDIO', r * 1.2, Math.round(r * 0.2), FONTS.stamp, '600');
+  ctx.fillText('SELFIE STUDIO', cx, cy - r * 0.33);
+  fitFont(ctx, text, r * 1.45, Math.round(r * 0.24), FONTS.stamp, '700');
+  ctx.fillText(text, cx, cy + r * 0.05);
+  ctx.font = `600 ${Math.round(r * 0.17)}px ${FONTS.stamp}`;
+  ctx.fillText('★ ★ ★', cx, cy + r * 0.4);
+  // Wavy cancellation lines trailing off to the left.
+  ctx.lineWidth = r * 0.05;
+  for (let k = -1.5; k <= 1.5; k++) {
+    ctx.beginPath();
+    const y0 = cy + k * r * 0.32;
+    for (let x = cx - r * 1.15; x >= cx - r * 3.4; x -= r * 0.05) {
+      const y = y0 + Math.sin((x / r) * 5) * r * 0.09;
+      if (x === cx - r * 1.15) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/**
+ * Build one postage stamp (perforated paper, framed photo, value and
+ * optional postmark) on its own canvas so the perforations cut cleanly.
+ */
+function postageStamp({ img, w, h, index, backdrop, postmark, placeholderInk }) {
+  const c = createCanvas(Math.round(w), Math.round(h));
+  const ctx = c.getContext('2d');
+  const W = c.width;
+  const H = c.height;
+  const ink = STAMP_INKS[index % STAMP_INKS.length];
+  const holeR = H * 0.024;
+  const pad = holeR * 2.8;
+  const band = H * 0.14;
+
+  ctx.fillStyle = backdrop === 'white' ? '#fbf8f1' : '#f6eedb';
+  ctx.fillRect(0, 0, W, H);
+
+  // Photo window with a fine engraved-style frame.
+  const px = pad;
+  const py = pad;
+  const pw = W - pad * 2;
+  const ph = H - pad * 2 - band;
+  if (img) {
+    const crop = coverCrop(img.width, img.height, pw / ph);
+    ctx.drawImage(img, crop.sx, crop.sy, crop.sw, crop.sh, px, py, pw, ph);
+  } else {
+    ctx.fillStyle = '#e4dccb';
+    ctx.fillRect(px, py, pw, ph);
+    ctx.fillStyle = placeholderInk;
+    ctx.font = `${Math.round(ph * 0.3)}px ${FONTS.caption}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(index + 1), px + pw / 2, py + ph / 2);
+  }
+  ctx.strokeStyle = ink;
+  ctx.lineWidth = Math.max(1, H * 0.008);
+  ctx.strokeRect(px, py, pw, ph);
+  ctx.lineWidth = Math.max(1, H * 0.003);
+  const o = H * 0.018;
+  ctx.strokeRect(px - o, py - o, pw + o * 2, ph + band + o * 1.2);
+
+  // Value band.
+  const by = py + ph + band * 0.55;
+  ctx.fillStyle = ink;
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  ctx.font = `600 ${Math.round(band * 0.36)}px ${FONTS.caption}`;
+  if ('letterSpacing' in ctx) ctx.letterSpacing = `${Math.round(band * 0.05)}px`;
+  ctx.fillText('SELFIE STUDIO', px, by);
+  if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+  ctx.textAlign = 'right';
+  ctx.font = `italic 800 ${Math.round(band * 0.62)}px ${FONTS.caption}`;
+  ctx.fillText(STAMP_VALUES[index % STAMP_VALUES.length], px + pw, by);
+
+  if (postmark && img) drawPostmark(ctx, px + pw - H * 0.14, py + H * 0.17, H * 0.15, postmark, '#2a2630');
+
+  // Punch the perforations.
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.beginPath();
+  for (const [x, y] of perforations(W, H, holeR * 3.3)) {
+    ctx.moveTo(x + holeR, y);
+    ctx.arc(x, y, holeR, 0, Math.PI * 2);
+  }
+  ctx.fill();
+  return c;
+}
+
 /** "12 Oct 2026 · 9:41 PM" in the booth's locale. */
 export function formatStamp(date, locale) {
   const d = date.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
@@ -146,10 +269,11 @@ function fitFont(ctx, text, maxW, size, font, weight = '') {
 /**
  * Render a full strip.
  * shots: array (≤4) of CanvasImageSource (raw captured frames), may contain nulls
- * opts: { look, backdrop, caption, stamp, dpi, tilt, placeholder }
- *   caption is printed only when non-empty; stamp is the date/time line.
+ * opts: { look, backdrop, caption, stamp, dpi, tilt, postage, placeholder }
+ *   caption is printed only when non-empty; stamp is the date/time line;
+ *   postage turns each photo into a perforated vintage postage stamp.
  */
-export function renderStrip(shots, { look, backdrop = 'black', caption = '', stamp = '', dpi = DOWNLOAD_DPI, tilt = false, placeholder = true } = {}) {
+export function renderStrip(shots, { look, backdrop = 'black', caption = '', stamp = '', dpi = DOWNLOAD_DPI, tilt = false, postage = false, placeholder = true } = {}) {
   const L = stripLayout(dpi);
   const bd = BACKDROPS[backdrop] || BACKDROPS.black;
   const canvas = createCanvas(L.W, L.H);
@@ -181,6 +305,29 @@ export function renderStrip(shots, { look, backdrop = 'black', caption = '', sta
     ctx.translate(r.x + r.w / 2, r.y + r.h / 2);
     let w = r.w;
     let h = r.h;
+    if (postage) {
+      if (tilt) {
+        const deg = TILTS[i % TILTS.length];
+        ctx.rotate((deg * Math.PI) / 180);
+        const k = tiltScale(r.w, r.h, deg, L.margin * 0.55, L.gap * 0.45);
+        ctx.scale(k, k);
+      }
+      const art = postageStamp({
+        img,
+        w: r.w,
+        h: r.h,
+        index: i,
+        backdrop,
+        postmark: i === 0 ? stamp.split(' · ')[0].toUpperCase() : '',
+        placeholderInk: bd.subInk,
+      });
+      ctx.shadowColor = 'rgba(0,0,0,0.25)';
+      ctx.shadowBlur = border * 1.2;
+      ctx.shadowOffsetY = border * 0.35;
+      ctx.drawImage(art, -r.w / 2, -r.h / 2, r.w, r.h);
+      ctx.restore();
+      return;
+    }
     if (tilt) {
       const deg = TILTS[i % TILTS.length];
       const k = tiltScale(r.w, r.h, deg, L.margin * 0.55, L.gap * 0.45);

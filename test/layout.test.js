@@ -67,3 +67,16 @@ test('stamp includes both date and time', () => {
   assert.match(s, /12 Oct 2026/);
   assert.match(s, /21:41|9:41/);
 });
+
+import { perforations } from '../public/js/layout.js';
+
+test('stamp perforations sit evenly on all four edges', () => {
+  const holes = perforations(1000, 700, 50);
+  const top = holes.filter(([, y]) => y === 0);
+  const left = holes.filter(([x]) => x === 0);
+  assert.equal(top.length, 20);
+  assert.equal(left.length, 14);
+  assert.equal(holes.length, (20 + 14) * 2);
+  for (const [x, y] of holes) assert.ok((y === 0 || y === 700 || x === 0 || x === 1000) && x >= 0 && x <= 1000 && y >= 0 && y <= 700);
+  assert.equal(top[1][0] - top[0][0], 50); // even spacing
+});

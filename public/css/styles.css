@@ -730,7 +730,13 @@ input[type='checkbox'] {
   color: var(--muted);
   transition: color 0.2s, border-color 0.2s;
 }
-a.support-link:hover {
+button.support-link {
+  background: transparent;
+  font: inherit;
+  cursor: copy;
+}
+a.support-link:hover,
+button.support-link:hover {
   color: var(--ink);
   border-color: var(--accent);
 }
