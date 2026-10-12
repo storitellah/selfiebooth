@@ -32,6 +32,10 @@ The server looks for printers on your network the same way AirPrint and Mopria d
 
 **No server?** If the page is opened without `npm start` (for example, on static hosting), the **Print** button opens the browser's print dialog with a 4×6, zero-margin page already set up. To print silently without the dialog, launch Chrome with `--kiosk-printing` and set the photo printer as the system default.
 
+## Hosting on Cloudflare Pages
+
+`wrangler.toml` tells Pages to serve the `public/` folder, so leave the build command empty. A hosted copy can take photos, download strips and print through the browser's print dialog. It can't send prints to a Wi-Fi printer by itself, because a cloud server can't reach a printer on your local network. For automatic printing, run `npm start` on a computer on the same Wi-Fi as the printer.
+
 ## Settings
 
 | Env var | Default | |
