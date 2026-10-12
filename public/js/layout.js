@@ -107,12 +107,49 @@ function paperTexture(ctx, W, H, seed = 3) {
   ctx.restore();
 }
 
+export const FONTS = {
+  caption: '"Fraunces", Georgia, serif',
+  stamp: '"DM Mono", "Courier New", monospace',
+};
+
+// Snapshot-style tilt for each of the four frames, in degrees.
+export const TILTS = [-2.4, 1.8, -1.5, 2.2];
+
+/**
+ * Scale that keeps a frame rotated by `deg` inside its slot, letting it
+ * spill a little into the surrounding margin/gap.
+ */
+export function tiltScale(w, h, deg, spillX, spillY) {
+  const a = Math.abs((deg * Math.PI) / 180);
+  const bw = w * Math.cos(a) + h * Math.sin(a);
+  const bh = w * Math.sin(a) + h * Math.cos(a);
+  return Math.min(1, (w + spillX * 2) / bw, (h + spillY * 2) / bh);
+}
+
+/** "12 Oct 2026 · 9:41 PM" in the booth's locale. */
+export function formatStamp(date, locale) {
+  const d = date.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
+  const t = date.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
+  return `${d} · ${t}`;
+}
+
+function fitFont(ctx, text, maxW, size, font, weight = '') {
+  let s = size;
+  ctx.font = `${weight} ${s}px ${font}`;
+  while (ctx.measureText(text).width > maxW && s > 8) {
+    s -= 2;
+    ctx.font = `${weight} ${s}px ${font}`;
+  }
+  return s;
+}
+
 /**
  * Render a full strip.
  * shots: array (≤4) of CanvasImageSource (raw captured frames), may contain nulls
- * opts: { look, backdrop, caption, date, dpi, mirror }
+ * opts: { look, backdrop, caption, stamp, dpi, tilt, placeholder }
+ *   caption is printed only when non-empty; stamp is the date/time line.
  */
-export function renderStrip(shots, { look, backdrop = 'black', caption = '', date = '', dpi = DOWNLOAD_DPI, placeholder = true } = {}) {
+export function renderStrip(shots, { look, backdrop = 'black', caption = '', stamp = '', dpi = DOWNLOAD_DPI, tilt = false, placeholder = true } = {}) {
   const L = stripLayout(dpi);
   const bd = BACKDROPS[backdrop] || BACKDROPS.black;
   const canvas = createCanvas(L.W, L.H);
@@ -124,49 +161,73 @@ export function renderStrip(shots, { look, backdrop = 'black', caption = '', dat
   const frame = createCanvas(L.frames[0].w, L.frames[0].h);
   const fctx = frame.getContext('2d', { willReadFrequently: true });
   fctx.imageSmoothingQuality = 'high';
+  const border = Math.round(0.035 * dpi);
 
   L.frames.forEach((r, i) => {
     const shot = shots[i];
-    if (!shot) {
-      if (placeholder) {
-        ctx.fillStyle = backdrop === 'white' ? '#ececec' : backdrop === 'vintage' ? 'rgba(59,42,28,0.12)' : '#1c1c1e';
-        ctx.fillRect(r.x, r.y, r.w, r.h);
-        ctx.fillStyle = bd.subInk;
-        ctx.font = `${Math.round(r.h * 0.22)}px "Playfair Display", Georgia, serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(String(i + 1), r.x + r.w / 2, r.y + r.h / 2);
-      }
+    let img = null;
+    if (shot) {
+      const sw = shot.videoWidth || shot.naturalWidth || shot.width;
+      const sh = shot.videoHeight || shot.naturalHeight || shot.height;
+      const c = coverCrop(sw, sh, r.w / r.h);
+      fctx.drawImage(shot, c.sx, c.sy, c.sw, c.sh, 0, 0, r.w, r.h);
+      applyLook(fctx, r.w, r.h, look, { seed: 101 + i });
+      img = frame;
+    } else if (!placeholder) {
       return;
     }
-    const sw = shot.videoWidth || shot.naturalWidth || shot.width;
-    const sh = shot.videoHeight || shot.naturalHeight || shot.height;
-    const c = coverCrop(sw, sh, r.w / r.h);
-    fctx.drawImage(shot, c.sx, c.sy, c.sw, c.sh, 0, 0, r.w, r.h);
-    applyLook(fctx, r.w, r.h, look, { seed: 101 + i });
-    ctx.drawImage(frame, r.x, r.y);
+
+    ctx.save();
+    ctx.translate(r.x + r.w / 2, r.y + r.h / 2);
+    let w = r.w;
+    let h = r.h;
+    if (tilt) {
+      const deg = TILTS[i % TILTS.length];
+      const k = tiltScale(r.w, r.h, deg, L.margin * 0.55, L.gap * 0.45);
+      ctx.rotate((deg * Math.PI) / 180);
+      ctx.scale(k, k);
+      // A snapshot border with a soft shadow, like prints pinned to a board.
+      ctx.shadowColor = 'rgba(0,0,0,0.28)';
+      ctx.shadowBlur = border * 1.4;
+      ctx.shadowOffsetY = border * 0.4;
+      ctx.fillStyle = backdrop === 'white' ? '#fafafa' : '#fffdf7';
+      ctx.fillRect(-w / 2, -h / 2, w, h);
+      ctx.shadowColor = 'transparent';
+      w -= border * 2;
+      h -= border * 2;
+    }
+    if (img) {
+      ctx.drawImage(img, 0, 0, r.w, r.h, -w / 2, -h / 2, w, h);
+    } else {
+      ctx.fillStyle = backdrop === 'white' ? '#ececec' : backdrop === 'vintage' ? 'rgba(59,42,28,0.12)' : '#1c1c1e';
+      ctx.fillRect(-w / 2, -h / 2, w, h);
+      ctx.fillStyle = bd.subInk;
+      ctx.font = `${Math.round(h * 0.22)}px ${FONTS.caption}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(i + 1), 0, 0);
+    }
+    ctx.restore();
   });
 
-  // Footer: caption + date, set in vintage type.
+  // Footer: optional caption, then the date & time the strip was taken.
   const f = L.footer;
   const cx = L.W / 2;
-  ctx.fillStyle = bd.ink;
+  const maxW = L.W - L.margin * 2.4;
+  const text = String(caption || '').trim().slice(0, 40);
   ctx.textAlign = 'center';
-  ctx.textBaseline = 'alphabetic';
-  const title = (caption || 'Selfie Booth').slice(0, 40);
-  let size = Math.round(f.h * 0.3);
-  ctx.font = `italic 700 ${size}px "Playfair Display", Georgia, serif`;
-  while (ctx.measureText(title).width > L.W - L.margin * 2.4 && size > 10) {
-    size -= 2;
-    ctx.font = `italic 700 ${size}px "Playfair Display", Georgia, serif`;
+  ctx.textBaseline = 'middle';
+  const stampY = text ? f.y + f.h * 0.72 : f.y + f.h * 0.5;
+  if (text) {
+    ctx.fillStyle = bd.ink;
+    fitFont(ctx, text, maxW, Math.round(f.h * 0.3), FONTS.caption, 'italic 600');
+    ctx.fillText(text, cx, f.y + f.h * 0.4);
   }
-  ctx.fillText(title, cx, f.y + f.h * 0.48);
-  if (date) {
-    ctx.fillStyle = bd.subInk;
-    const ds = Math.round(f.h * 0.13);
-    ctx.font = `${ds}px "Special Elite", "Courier New", monospace`;
-    if ('letterSpacing' in ctx) ctx.letterSpacing = `${Math.round(ds * 0.18)}px`;
-    ctx.fillText(date.toUpperCase(), cx, f.y + f.h * 0.76);
+  if (stamp) {
+    ctx.fillStyle = text ? bd.subInk : bd.ink;
+    const ds = fitFont(ctx, stamp.toUpperCase(), maxW, Math.round(f.h * (text ? 0.12 : 0.15)), FONTS.stamp, '500');
+    if ('letterSpacing' in ctx) ctx.letterSpacing = `${Math.round(ds * 0.12)}px`;
+    ctx.fillText(stamp.toUpperCase(), cx, stampY);
     if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
   }
   return canvas;

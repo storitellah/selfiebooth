@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Selfie Booth Studio server: serves the booth UI and relays print jobs to a
+// Selfie Studio server: serves the booth UI and relays print jobs to a
 // Wi-Fi printer (browsers cannot talk to printers directly).
 //
 //   PORT=8080 PRINTER_URI=ipp://192.168.1.40/ipp/print node server.js
@@ -137,7 +137,7 @@ server.listen(PORT, HOST, () => {
     .flat()
     .filter((i) => i && i.family === 'IPv4' && !i.internal)
     .map((i) => `http://${i.address}:${PORT}`);
-  console.log(`\n  Selfie Booth Studio running`);
+  console.log(`\n  Selfie Studio by Storitellah is running`);
   console.log(`  ➜ This computer: http://localhost:${PORT}`);
   for (const u of lan) console.log(`  ➜ On your network: ${u}  (camera needs https or localhost)`);
   console.log(`\n  Searching for Wi-Fi printers…`);

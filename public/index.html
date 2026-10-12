@@ -3,31 +3,45 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#0d0c0b" />
-    <title>Selfie Booth Studio</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='6' y='16' width='52' height='38' rx='6' fill='%23c9a45c'/%3E%3Crect x='22' y='8' width='20' height='12' rx='3' fill='%23c9a45c'/%3E%3Ccircle cx='32' cy='35' r='12' fill='%230d0c0b'/%3E%3Ccircle cx='32' cy='35' r='6' fill='%23c9a45c'/%3E%3C/svg%3E" />
+    <meta name="theme-color" content="#0f0e0d" />
+    <meta name="description" content="Selfie Studio by Storitellah — a free photo booth that makes 2×6 photo strips and prints them on 4×6 paper." />
+    <title>Selfie Studio by Storitellah</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='6' y='16' width='52' height='38' rx='10' fill='%23d9a75b'/%3E%3Crect x='22' y='9' width='20' height='11' rx='4' fill='%23d9a75b'/%3E%3Ccircle cx='32' cy='35' r='12' fill='%23151311'/%3E%3Ccircle cx='32' cy='35' r='6' fill='%23d9a75b'/%3E%3Cpath d='M52 4l2 5 5 2-5 2-2 5-2-5-5-2 5-2z' fill='%23e86a5a'/%3E%3C/svg%3E" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,700&family=Special+Elite&display=swap"
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,800;1,9..144,600&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="css/styles.css" />
   </head>
   <body>
-    <header class="marquee">
-      <div class="bulbs" aria-hidden="true"></div>
-      <div class="marquee-inner">
-        <div class="brand">
-          <span class="brand-est">Est. 2026</span>
-          <h1>Selfie Booth <em>Studio</em></h1>
-          <span class="brand-tag">Four poses · One strip · Printed while you wait</span>
-        </div>
+    <!-- Eye-contact guide: sits at the top edge, right under a laptop/phone camera -->
+    <div id="eyeline" class="eyeline" aria-hidden="true">
+      <span class="eyeline-lens"></span>
+      <span class="eyeline-count" id="eyelineCount"></span>
+      <span class="eyeline-label">Look here</span>
+    </div>
+
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="https://storitellah.com" target="_blank" rel="noopener">
+          <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
+            <rect x="6" y="16" width="52" height="38" rx="10" />
+            <rect x="22" y="9" width="20" height="11" rx="4" />
+            <circle class="lens" cx="32" cy="35" r="12" />
+            <circle cx="32" cy="35" r="6" />
+            <path class="spark" d="M54 2l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" />
+          </svg>
+          <span class="brand-text">
+            <span class="brand-name">Selfie Studio</span>
+            <span class="brand-by">by <span>Storitellah</span></span>
+          </span>
+        </a>
         <button id="printerChip" class="chip" type="button" aria-haspopup="dialog">
           <span class="dot"></span><span class="chip-label">Looking for printer…</span>
         </button>
       </div>
-      <div class="bulbs" aria-hidden="true"></div>
     </header>
 
     <main class="studio">
@@ -36,12 +50,13 @@
         <div class="viewfinder" id="viewfinder">
           <canvas id="preview" aria-label="Live camera preview"></canvas>
           <div class="frame-corners" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+          <div id="lensCue" class="lens-cue" hidden>Look into the camera lens</div>
           <div id="countdown" class="countdown" aria-live="assertive"></div>
           <div id="flash" class="flash" aria-hidden="true"></div>
           <div id="cameraMsg" class="camera-msg" hidden>
-            <p class="camera-msg-title">The camera is warming up…</p>
+            <p class="camera-msg-title">Warming up the camera…</p>
             <p class="camera-msg-body">Allow camera access when your browser asks.</p>
-            <button id="retryCamera" class="btn btn-ghost" type="button" hidden>Try again</button>
+            <button id="retryCamera" class="btn btn-light" type="button" hidden>Try again</button>
           </div>
           <div class="shot-dots" id="shotDots" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
         </div>
@@ -50,33 +65,49 @@
             <span class="shutter-ring"></span>
             <span class="shutter-label">Take Photos</span>
           </button>
-          <p class="hint">Press <kbd>Space</kbd> to start · four shots, three seconds apart</p>
+          <p class="hint">Press <kbd>Space</kbd> to start · four photos, three seconds apart</p>
         </div>
       </section>
 
       <!-- Live strip -->
       <section class="strip-col" aria-label="Your strip">
         <div class="strip-holder"><canvas id="stripPreview"></canvas></div>
-        <p class="strip-size">2 × 6 in strip · prints two-up on 4 × 6</p>
+        <p class="strip-size">2 × 6 in strip<br />prints two to a 4 × 6</p>
       </section>
 
       <!-- Controls -->
-      <aside class="panel" aria-label="Booth settings">
+      <aside class="panel" aria-label="Studio settings">
         <div class="panel-section">
-          <h2>Light &amp; Look</h2>
+          <h2>Light &amp; look</h2>
           <div class="tabs" role="tablist" id="lookTabs"></div>
           <div class="looks" id="looks" role="listbox" aria-label="Looks"></div>
         </div>
 
         <div class="panel-section">
-          <h2>Background</h2>
+          <h2>Strip</h2>
           <div class="backdrops" id="backdrops" role="radiogroup" aria-label="Background colour"></div>
+          <label class="row switch"><input id="tilt" type="checkbox" /><span></span> Tilt photos like snapshots</label>
+          <input id="caption" type="text" maxlength="40" placeholder="Add a caption (optional)" autocomplete="off" aria-label="Caption" />
+          <p class="note">Date and time are printed on every strip. The caption only prints if you type one.</p>
         </div>
 
         <div class="panel-section">
-          <h2>Caption</h2>
-          <input id="caption" type="text" maxlength="40" placeholder="Selfie Booth" autocomplete="off" />
-          <label class="row"><input id="showDate" type="checkbox" checked /> Stamp today's date</label>
+          <h2>Camera</h2>
+          <select id="cameraSelect" aria-label="Camera"></select>
+          <p id="cameraInfo" class="note mono"></p>
+          <label class="row">Eye contact guide
+            <select id="eyelineMode">
+              <option value="auto">Automatic</option>
+              <option value="top">Top of screen (built-in camera)</option>
+              <option value="lens">Camera lens (external camera)</option>
+              <option value="off">Off</option>
+            </select>
+          </label>
+          <label class="row"><input id="mirror" type="checkbox" checked /> Mirror the preview and photos</label>
+          <details class="pro-help">
+            <summary>Using a professional camera?</summary>
+            <p>Connect it with an <b>HDMI capture card</b> (such as Elgato Cam Link) or by <b>USB-C in webcam mode</b> (most Canon, Sony, Nikon, Fujifilm and Panasonic cameras). Turn off the camera's on-screen display and auto power-off, then pick it from the list above.</p>
+          </details>
         </div>
 
         <div class="panel-section">
@@ -86,22 +117,29 @@
             <select id="copies"><option>1</option><option>2</option><option>3</option><option>4</option></select>
             <small>(each sheet = 2 strips)</small>
           </label>
-          <label class="row"><input id="mirror" type="checkbox" checked /> Mirror like a mirror</label>
           <button id="openPrinter" class="btn btn-ghost btn-small" type="button">Printer settings…</button>
         </div>
       </aside>
     </main>
+
+    <footer class="support" id="support">
+      <p id="supportMessage"></p>
+      <div class="support-links" id="supportLinks"></div>
+      <p class="support-credit">Made with care by <a href="https://storitellah.com" target="_blank" rel="noopener">Storitellah</a></p>
+    </footer>
 
     <!-- Review -->
     <dialog id="review" class="sheet-dialog" aria-labelledby="reviewTitle">
       <div class="review">
         <div class="review-strip"><img id="reviewStrip" alt="Your photo strip" /></div>
         <div class="review-side">
-          <h2 id="reviewTitle">Fresh from the booth</h2>
+          <h2 id="reviewTitle">Fresh off the press <span class="spark-inline">✦</span></h2>
           <p id="printStatus" class="print-status" role="status"></p>
           <div class="review-looks">
             <label>Look <select id="reviewLook"></select></label>
             <label>Background <select id="reviewBackdrop"></select></label>
+            <label class="row"><input id="reviewTilt" type="checkbox" /> Tilt</label>
+            <label class="review-caption">Caption <input id="reviewCaption" type="text" maxlength="40" placeholder="Optional" autocomplete="off" /></label>
           </div>
           <div class="sheet-preview" aria-label="4 by 6 print preview">
             <img id="reviewSheet" alt="4 by 6 print sheet with two strips" />

@@ -1,6 +1,6 @@
-# Selfie Booth Studio
+# Selfie Studio by Storitellah
 
-A vintage photo booth that runs in a browser. It shoots four poses, turns them into a classic 2×6 strip, prints automatically to a Wi-Fi printer on 4×6 photo paper, and lets guests download a high-resolution JPG.
+A free photo booth that runs in a browser, by [Storitellah](https://storitellah.com). It shoots four poses, turns them into a classic 2×6 strip, prints automatically to a Wi-Fi printer on 4×6 photo paper, and lets guests download a high-resolution JPG.
 
 ## Quick start
 
@@ -14,12 +14,26 @@ Open **http://localhost:8080** on the computer the camera is plugged into. Brows
 
 | | |
 |---|---|
-| **Shooting** | 3-second countdown, flash, four shots. The live preview shows the selected look. |
+| **Camera** | Opens the selected camera at the highest resolution it supports. Where the browser allows it (Chrome and Edge, especially on Android), each photo is taken through the device's still-photo pipeline at full sensor resolution, and cropped to match what the preview showed. |
+| **Pro cameras** | Any camera the computer sees as a webcam can be picked from the **Camera** list. That includes DSLR and mirrorless cameras connected with an HDMI capture card (such as Elgato Cam Link) or through USB-C webcam mode. Cameras recognised as professional are marked ★, and mirroring is switched off when you choose one. |
+| **Eye contact** | During the countdown a **Look here** tab drops down from the top-centre of the screen, just under a laptop or phone camera, with the countdown beside it. With an external camera it says **Look into the camera lens** instead. You can change this under *Eye contact guide*. |
 | **Looks** | **Colour** (light-based): Natural Light, Golden Hour, Soft Glow, Sunlit Film, Window Light, Faded Polaroid, Neon Night. **Black & White**: Classic Mono, Noir Spotlight, Silver Screen, Sepia Lamp, Hard Light. **White**: High-Key White, Porcelain, Ghost White, Milk Glass. |
-| **Backgrounds** | Black, Vintage (aged cream paper) and White. The choice sets the strip paper and the colour scheme of the booth itself. |
-| **Download** | A single 2×6 in strip, saved as a JPG at **600 DPI (1200 × 3600 px)**. The DPI is written into the file so photo apps know its print size. A "Download 4×6 sheet" button is also available. |
-| **Print** | A **4×6 in portrait sheet with two identical strips side by side** (1200 × 1800 px at 300 DPI). Cut along the long centre line to get two 2×6 strips. Small cut marks show where the line is. |
-| **Restyle** | On the review screen you can switch the look or background, then download or print again. |
+| **Strip** | Black, Vintage (aged cream paper) or White background, which also sets the studio's colour scheme. Optional **tilt** gives each photo a slight angle and a white snapshot border. The **date and time** of the session is printed on every strip. A **caption** prints only when one is typed. It is never remembered, so every event starts blank. |
+| **Download** | A single 2×6 in strip, saved as a JPG at **600 DPI (1200 × 3600 px)**. A "Download 4×6 sheet" button is also available. |
+| **Print** | A **4×6 in portrait sheet with two identical strips side by side** (1200 × 1800 px at 300 DPI). Cut along the long centre line to get two 2×6 strips. |
+| **Restyle** | On the review screen you can change the look, background, tilt or caption, then download or print again. |
+
+## Support links
+
+Selfie Studio is free. A quiet footer invites people to support its development. Add your links in `public/js/config.js`:
+
+```js
+patreon: 'https://www.patreon.com/…',
+kofi: 'https://ko-fi.com/…',
+mpesa: { url: '', text: 'Till 123456' },   // a payment link, or details to display
+```
+
+Any link left empty is hidden.
 
 ## Wi-Fi printing
 

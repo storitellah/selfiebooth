@@ -45,3 +45,25 @@ test('setJpegDpi writes JFIF density', () => {
   assert.equal((b[14] << 8) | b[15], 600);
   assert.equal((b[16] << 8) | b[17], 600);
 });
+
+import { tiltScale, formatStamp, TILTS } from '../public/js/layout.js';
+
+test('tilted frames stay inside their slot plus the allowed spill', () => {
+  const L = stripLayout(600);
+  const { w, h } = L.frames[0];
+  for (const deg of TILTS) {
+    const sx = L.margin * 0.55;
+    const sy = L.gap * 0.45;
+    const k = tiltScale(w, h, deg, sx, sy);
+    const a = (Math.abs(deg) * Math.PI) / 180;
+    assert.ok(k * (w * Math.cos(a) + h * Math.sin(a)) <= w + sx * 2 + 1e-6);
+    assert.ok(k * (w * Math.sin(a) + h * Math.cos(a)) <= h + sy * 2 + 1e-6);
+  }
+  assert.equal(tiltScale(100, 50, 0, 0, 0), 1);
+});
+
+test('stamp includes both date and time', () => {
+  const s = formatStamp(new Date(2026, 9, 12, 21, 41), 'en-GB');
+  assert.match(s, /12 Oct 2026/);
+  assert.match(s, /21:41|9:41/);
+});

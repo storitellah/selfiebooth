@@ -1,6 +1,8 @@
 import { GROUPS, LOOKS, getLook, applyLook } from './filters.js';
-import { BACKDROPS, DOWNLOAD_DPI, PRINT_DPI, SHOTS, stripLayout, coverCrop, renderStrip, renderSheet, canvasToJpeg } from './layout.js';
+import { BACKDROPS, DOWNLOAD_DPI, PRINT_DPI, SHOTS, FONTS, stripLayout, coverCrop, renderStrip, renderSheet, canvasToJpeg, formatStamp } from './layout.js';
 import { getPrinterStatus, listPrinters, configurePrinter, printViaServer, printViaBrowser } from './printing.js';
+import { listCameras, openCamera, describeCamera, captureStill, isProCamera } from './camera.js';
+import { SUPPORT } from './config.js';
 
 const $ = (id) => document.getElementById(id);
 const COUNTDOWN_SECONDS = 3;
@@ -9,16 +11,19 @@ const FRAME_ASPECT = stripLayout().aspect;
 // ---------------------------------------------------------------------------
 // Settings (remembered per browser; everything works without storage too)
 
-const DEFAULT_SETTINGS = { look: 'natural', backdrop: 'black', caption: '', showDate: true, autoPrint: true, copies: 1, mirror: true };
+const DEFAULT_SETTINGS = { look: 'natural', backdrop: 'black', tilt: false, autoPrint: true, copies: 1, mirror: true, cameraId: null, eyeline: 'auto' };
 const settings = { ...DEFAULT_SETTINGS };
 try {
-  Object.assign(settings, JSON.parse(localStorage.getItem('selfiebooth') || '{}'));
+  Object.assign(settings, JSON.parse(localStorage.getItem('selfiestudio') || '{}'));
 } catch {
   /* storage unavailable */
 }
+// The caption changes with every event, so it is never remembered.
+settings.caption = '';
 const persist = () => {
   try {
-    localStorage.setItem('selfiebooth', JSON.stringify(settings));
+    const { caption, ...keep } = settings;
+    localStorage.setItem('selfiestudio', JSON.stringify(keep));
   } catch {
     /* ignore */
   }
@@ -31,6 +36,7 @@ const state = {
   busy: false,
   printer: { server: false, connected: false, ready: false },
   lastStrip: null,
+  takenAt: null,
   activeGroup: getLook(settings.look).group,
 };
 state.video.muted = true;
@@ -43,28 +49,76 @@ async function startCamera() {
   const msg = $('cameraMsg');
   msg.hidden = false;
   $('retryCamera').hidden = true;
-  msg.querySelector('.camera-msg-title').textContent = 'The camera is warming up…';
+  $('shutter').disabled = true;
+  msg.querySelector('.camera-msg-title').textContent = 'Warming up the camera…';
   msg.querySelector('.camera-msg-body').textContent = 'Allow camera access when your browser asks.';
+  stopCamera();
   try {
-    if (!navigator.mediaDevices?.getUserMedia) throw Object.assign(new Error('insecure'), { name: 'InsecureContext' });
-    state.stream = await navigator.mediaDevices.getUserMedia({
-      audio: false,
-      video: { facingMode: 'user', width: { ideal: 3840 }, height: { ideal: 2160 } },
-    });
+    try {
+      state.stream = await openCamera(settings.cameraId);
+    } catch (err) {
+      // A remembered camera may have been unplugged — fall back to the default.
+      if (!settings.cameraId || err.name === 'NotAllowedError') throw err;
+      settings.cameraId = null;
+      persist();
+      state.stream = await openCamera(null);
+    }
     state.video.srcObject = state.stream;
     await state.video.play();
+    previewSized = false;
     msg.hidden = true;
     $('shutter').disabled = false;
+    await refreshCameraList();
   } catch (err) {
     const insecure = err.name === 'InsecureContext' || !window.isSecureContext;
     msg.querySelector('.camera-msg-title').textContent = insecure ? 'Camera needs a secure page' : 'No camera available';
     msg.querySelector('.camera-msg-body').textContent = insecure
-      ? 'Open the booth at http://localhost on the booth computer, or serve it over https.'
+      ? 'Open the studio at http://localhost on this computer, or serve it over https.'
       : err.name === 'NotAllowedError'
         ? 'Camera permission was blocked. Allow it in the address bar, then try again.'
-        : 'Plug in or enable a camera, then try again.';
+        : err.name === 'NotReadableError'
+          ? 'Another app is using this camera. Close it, then try again.'
+          : 'Plug in or enable a camera, then try again.';
     $('retryCamera').hidden = false;
   }
+}
+
+function stopCamera() {
+  state.stream?.getTracks().forEach((t) => t.stop());
+  state.stream = null;
+}
+
+function activeCameraLabel() {
+  return state.stream?.getVideoTracks()[0]?.label || '';
+}
+
+async function refreshCameraList() {
+  const select = $('cameraSelect');
+  const cams = await listCameras().catch(() => []);
+  const activeId = state.stream?.getVideoTracks()[0]?.getSettings().deviceId;
+  select.innerHTML = '';
+  for (const cam of cams) {
+    select.append(new Option(`${cam.pro ? '★ ' : ''}${cam.label}`, cam.id, false, cam.id === activeId));
+  }
+  if (!cams.length) select.append(new Option('No cameras found', ''));
+  const info = await describeCamera(state.stream).catch(() => null);
+  $('cameraInfo').textContent = info ? `Live ${info.video}${info.photo ? ` · photos up to ${info.photo}` : ''}` : '';
+  updateEyeline();
+}
+
+// ---------------------------------------------------------------------------
+// Eye-contact guide
+
+function eyelineMode() {
+  if (settings.eyeline !== 'auto') return settings.eyeline;
+  return isProCamera(activeCameraLabel()) ? 'lens' : 'top';
+}
+
+function updateEyeline(active = state.busy) {
+  const mode = eyelineMode();
+  $('eyeline').classList.toggle('show', mode === 'top' && active);
+  $('eyeline').classList.toggle('idle', mode === 'top' && !active);
+  $('lensCue').hidden = !(mode === 'lens' && active);
 }
 
 // ---------------------------------------------------------------------------
@@ -194,13 +248,15 @@ function selectBackdrop(id) {
 // ---------------------------------------------------------------------------
 // Strip rendering
 
-function dateStamp() {
-  if (!settings.showDate) return '';
-  return new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
-}
-
 function stripOptions(overrides = {}) {
-  return { look: getLook(settings.look), backdrop: settings.backdrop, caption: settings.caption, date: dateStamp(), ...overrides };
+  return {
+    look: getLook(settings.look),
+    backdrop: settings.backdrop,
+    caption: settings.caption,
+    tilt: settings.tilt,
+    stamp: formatStamp(state.takenAt || new Date()),
+    ...overrides,
+  };
 }
 
 let previewQueued = false;
@@ -222,34 +278,25 @@ function refreshStripPreview() {
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-function captureFrame() {
-  const v = state.video;
-  const c = document.createElement('canvas');
-  c.width = v.videoWidth;
-  c.height = v.videoHeight;
-  const ctx = c.getContext('2d');
-  if (settings.mirror) {
-    ctx.translate(c.width, 0);
-    ctx.scale(-1, 1);
-  }
-  ctx.drawImage(v, 0, 0);
-  return c;
-}
-
 function setDots(n) {
   [...$('shotDots').children].forEach((d, i) => d.classList.toggle('done', i < n));
 }
 
 async function countdown(label) {
   const el = $('countdown');
+  const near = $('eyelineCount');
   for (let s = COUNTDOWN_SECONDS; s >= 1; s--) {
     el.innerHTML = `<div>${s}<small>${label}</small></div>`;
-    el.classList.remove('tick');
-    void el.offsetWidth;
-    el.classList.add('tick');
+    near.textContent = String(s);
+    for (const n of [el, near]) {
+      n.classList.remove('tick');
+      void n.offsetWidth;
+      n.classList.add('tick');
+    }
     await wait(1000);
   }
   el.textContent = '';
+  near.textContent = '';
   el.classList.remove('tick');
 }
 
@@ -258,7 +305,9 @@ async function runSession() {
   state.busy = true;
   $('shutter').disabled = true;
   state.shots = [];
+  state.takenAt = new Date();
   setDots(0);
+  updateEyeline(true);
   refreshStripPreview();
   await document.fonts?.ready;
   try {
@@ -268,7 +317,7 @@ async function runSession() {
       flash.classList.remove('fire');
       void flash.offsetWidth;
       flash.classList.add('fire');
-      state.shots.push(captureFrame());
+      state.shots.push(await captureStill(state.video, { mirror: settings.mirror }));
       setDots(i + 1);
       refreshStripPreview();
       await wait(500);
@@ -276,6 +325,7 @@ async function runSession() {
     await finishSession();
   } finally {
     state.busy = false;
+    updateEyeline(false);
     $('shutter').disabled = !state.stream;
   }
 }
@@ -286,8 +336,8 @@ async function runSession() {
 let buildGeneration = 0;
 async function buildOutputs() {
   const generation = ++buildGeneration;
-  await document.fonts?.load('italic 700 40px "Playfair Display"').catch(() => {});
-  await document.fonts?.load('20px "Special Elite"').catch(() => {});
+  await document.fonts?.load(`italic 600 40px ${FONTS.caption}`).catch(() => {});
+  await document.fonts?.load(`500 20px ${FONTS.stamp}`).catch(() => {});
   const strip = renderStrip(state.shots, stripOptions({ dpi: DOWNLOAD_DPI, placeholder: false }));
   const sheet = renderSheet(strip, { backdrop: settings.backdrop, dpi: PRINT_DPI });
   const [stripJpg, sheetJpg] = await Promise.all([canvasToJpeg(strip, { dpi: DOWNLOAD_DPI, quality: 0.95 }), canvasToJpeg(sheet, { dpi: PRINT_DPI, quality: 0.95 })]);
@@ -296,7 +346,7 @@ async function buildOutputs() {
     URL.revokeObjectURL(state.lastStrip.stripUrl);
     URL.revokeObjectURL(state.lastStrip.sheetUrl);
   }
-  state.lastStrip = { stripJpg, sheetJpg, stripUrl: URL.createObjectURL(stripJpg), sheetUrl: URL.createObjectURL(sheetJpg), stamp: new Date() };
+  state.lastStrip = { stripJpg, sheetJpg, stripUrl: URL.createObjectURL(stripJpg), sheetUrl: URL.createObjectURL(sheetJpg), stamp: state.takenAt || new Date() };
   $('reviewStrip').src = state.lastStrip.stripUrl;
   $('reviewSheet').src = state.lastStrip.sheetUrl;
   return true;
@@ -352,7 +402,7 @@ async function printSheet() {
 function fileName(kind) {
   const d = state.lastStrip?.stamp || new Date();
   const p = (n) => String(n).padStart(2, '0');
-  return `selfiebooth-${kind}-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.jpg`;
+  return `selfie-studio-${kind}-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.jpg`;
 }
 
 function download(url, name) {
@@ -377,11 +427,18 @@ function syncReviewSelects() {
   }
   look.value = settings.look;
   $('reviewBackdrop').value = settings.backdrop;
+  $('reviewTilt').checked = settings.tilt;
+  $('reviewCaption').value = settings.caption;
 }
 
 async function restyleFromReview() {
   selectLook($('reviewLook').value);
   selectBackdrop($('reviewBackdrop').value);
+  settings.tilt = $('reviewTilt').checked;
+  $('tilt').checked = settings.tilt;
+  settings.caption = $('reviewCaption').value;
+  $('caption').value = settings.caption;
+  persist();
   state.activeGroup = getLook(settings.look).group;
   buildLookPicker();
   setPrintStatus('Re-developing…');
@@ -411,7 +468,7 @@ async function openPrinterDialog() {
   const dlg = $('printerDialog');
   const p = await refreshPrinter();
   $('printerDetail').textContent = !p.server
-    ? 'Start the booth with `npm start` to print straight to a Wi-Fi printer.'
+    ? 'Run the studio with `npm start` on a computer on the printer\'s Wi-Fi to print straight to it.'
     : p.connected
       ? `Connected: ${p.name}${p.model && p.model !== p.name ? ` (${p.model})` : ''} — ${p.ready ? 'ready' : p.reasons?.join(', ') || p.state}${p.source === 'auto' ? ' · auto-detected' : ''}`
       : p.message || 'Not connected.';
@@ -458,6 +515,32 @@ async function savePrinter(uri) {
 }
 
 // ---------------------------------------------------------------------------
+// Support links (quiet footer)
+
+function buildSupport() {
+  $('supportMessage').textContent = SUPPORT.message;
+  const wrap = $('supportLinks');
+  const links = [
+    { label: 'Patreon', href: SUPPORT.patreon },
+    { label: 'Ko-fi', href: SUPPORT.kofi },
+    { label: 'M-Pesa', href: SUPPORT.mpesa?.url, text: SUPPORT.mpesa?.text },
+  ];
+  for (const l of links) {
+    if (!l.href && !l.text) continue;
+    const el = document.createElement(l.href ? 'a' : 'span');
+    el.className = 'support-link';
+    if (l.href) {
+      el.href = l.href;
+      el.target = '_blank';
+      el.rel = 'noopener';
+    }
+    el.textContent = l.text ? `${l.label} · ${l.text}` : l.label;
+    wrap.append(el);
+  }
+  wrap.hidden = !wrap.children.length;
+}
+
+// ---------------------------------------------------------------------------
 // Wire up
 
 function init() {
@@ -466,11 +549,10 @@ function init() {
   buildBackdrops();
   selectBackdrop(settings.backdrop);
 
+  buildSupport();
   const caption = $('caption');
-  caption.value = settings.caption;
   caption.oninput = () => {
     settings.caption = caption.value;
-    persist();
     refreshStripPreview();
   };
   const bindCheck = (id, key, after) => {
@@ -481,9 +563,28 @@ function init() {
       after?.();
     };
   };
-  bindCheck('showDate', 'showDate', refreshStripPreview);
+  bindCheck('tilt', 'tilt', refreshStripPreview);
   bindCheck('autoPrint', 'autoPrint');
   bindCheck('mirror', 'mirror');
+  $('eyelineMode').value = settings.eyeline;
+  $('eyelineMode').onchange = () => {
+    settings.eyeline = $('eyelineMode').value;
+    persist();
+    updateEyeline();
+  };
+  $('cameraSelect').onchange = () => {
+    const id = $('cameraSelect').value || null;
+    settings.cameraId = id;
+    // Pro cameras face the guests, so mirroring is usually unwanted.
+    const label = $('cameraSelect').selectedOptions[0]?.textContent || '';
+    if (label.startsWith('★')) {
+      settings.mirror = false;
+      $('mirror').checked = false;
+    }
+    persist();
+    startCamera();
+  };
+  navigator.mediaDevices?.addEventListener?.('devicechange', () => state.stream && refreshCameraList());
   $('copies').value = String(settings.copies);
   $('copies').onchange = () => {
     settings.copies = Number($('copies').value);
@@ -510,6 +611,12 @@ function init() {
   };
   $('reviewLook').onchange = restyleFromReview;
   $('reviewBackdrop').onchange = restyleFromReview;
+  $('reviewTilt').onchange = restyleFromReview;
+  let captionTimer;
+  $('reviewCaption').oninput = () => {
+    clearTimeout(captionTimer);
+    captionTimer = setTimeout(restyleFromReview, 400);
+  };
 
   $('printerChip').onclick = openPrinterDialog;
   $('openPrinter').onclick = openPrinterDialog;
