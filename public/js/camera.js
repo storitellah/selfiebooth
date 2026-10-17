@@ -2,6 +2,8 @@
 // connected camera (built-in, USB webcam, or a pro camera through an HDMI
 // capture card / USB-C webcam mode) and captures full-resolution stills.
 
+import { isIOS, MAX_CAPTURE_EDGE } from './device.js';
+
 // Names that pro cameras and capture devices commonly report.
 const PRO_PATTERN =
   /cam ?link|elgato|capture|hdmi|uvc video|usb video|magewell|blackmagic|avermedia|atomos|canon|eos|sony|alpha|nikon|fujifilm|x webcam|lumix|panasonic|olympus|om system|gopro|insta360|obsbot|ultra ?stream/i;
@@ -26,18 +28,32 @@ export async function openCamera(deviceId) {
   if (!navigator.mediaDevices?.getUserMedia) throw Object.assign(new Error('insecure'), { name: 'InsecureContext' });
   const base = deviceId ? { deviceId: { exact: deviceId } } : { facingMode: 'user' };
   // Ask big first; the browser falls back to the closest mode it supports.
-  const stream = await navigator.mediaDevices.getUserMedia({
-    audio: false,
-    video: { ...base, width: { ideal: 4096 }, height: { ideal: 2160 }, frameRate: { ideal: 30 } },
-  });
-  const track = stream.getVideoTracks()[0];
-  await raiseToMax(track);
-  return stream;
+  // Some browsers reject rich constraints outright, so step down until one works.
+  const attempts = [
+    { ...base, width: { ideal: 3840 }, height: { ideal: 2160 }, frameRate: { ideal: 30 } },
+    { ...base, width: { ideal: 1920 }, height: { ideal: 1080 } },
+    base,
+    true,
+  ];
+  let lastErr;
+  for (const video of attempts) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video });
+      // iOS reports still-photo sizes as video capabilities; forcing them stalls the feed.
+      if (!isIOS) await raiseToMax(stream.getVideoTracks()[0]);
+      return stream;
+    } catch (err) {
+      lastErr = err;
+      // Permission or hardware problems won't be fixed by smaller constraints.
+      if (['NotAllowedError', 'SecurityError', 'NotReadableError', 'AbortError'].includes(err.name)) throw err;
+    }
+  }
+  throw lastErr;
 }
 
 /** Push the track to the largest resolution it advertises. */
 async function raiseToMax(track) {
-  const caps = track.getCapabilities?.();
+  const caps = track?.getCapabilities?.();
   if (!caps?.width?.max || !caps?.height?.max) return;
   const now = track.getSettings();
   if (now.width >= caps.width.max && now.height >= caps.height.max) return;
@@ -92,15 +108,20 @@ function cropTo(src, sw, sh, aspect, mirror) {
   let ch = sh;
   if (sw / sh > aspect) cw = Math.round(sh * aspect);
   else ch = Math.round(sw / aspect);
+  // Keep plenty for a 600 DPI print, but stay within mobile canvas memory limits.
+  const k = Math.min(1, MAX_CAPTURE_EDGE / Math.max(cw, ch));
+  const ow = Math.round(cw * k);
+  const oh = Math.round(ch * k);
   const c = document.createElement('canvas');
-  c.width = cw;
-  c.height = ch;
+  c.width = ow;
+  c.height = oh;
   const ctx = c.getContext('2d');
+  ctx.imageSmoothingQuality = 'high';
   if (mirror) {
-    ctx.translate(cw, 0);
+    ctx.translate(ow, 0);
     ctx.scale(-1, 1);
   }
-  ctx.drawImage(src, (sw - cw) / 2, (sh - ch) / 2, cw, ch, 0, 0, cw, ch);
+  ctx.drawImage(src, (sw - cw) / 2, (sh - ch) / 2, cw, ch, 0, 0, ow, oh);
   return c;
 }
 
@@ -120,7 +141,9 @@ export async function captureStill(video, { mirror = false, highRes = true } = {
       const blob = await withTimeout(ic.takePhoto({ imageWidth: caps.imageWidth.max, imageHeight: caps.imageHeight.max }), 4000);
       const bmp = await createImageBitmap(blob);
       // The still sensor may be 4:3 while video is 16:9 — match the preview.
-      return cropTo(bmp, bmp.width, bmp.height, vw / vh, mirror);
+      const out = cropTo(bmp, bmp.width, bmp.height, vw / vh, mirror);
+      bmp.close?.();
+      return out;
     } catch {
       /* fall back to the video frame */
     }

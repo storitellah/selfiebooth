@@ -163,7 +163,7 @@ export function addGrain(data, amount, seed = 7) {
 // Canvas layer (browser only)
 
 function makeCanvas(w, h) {
-  if (typeof OffscreenCanvas !== 'undefined') return new OffscreenCanvas(w, h);
+  // A plain canvas works everywhere (OffscreenCanvas 2D is missing on older Safari).
   const c = document.createElement('canvas');
   c.width = w;
   c.height = h;

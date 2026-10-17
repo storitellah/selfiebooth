@@ -23,6 +23,15 @@ Open **http://localhost:8080** on the computer the camera is plugged into. Brows
 | **Print** | A **4×6 in portrait sheet with two identical strips side by side** (1200 × 1800 px at 300 DPI). Cut along the long centre line to get two 2×6 strips. |
 | **Restyle** | On the review screen you can change the look, background, tilt, stamp shape, stamp text or caption, then download or print again. |
 
+## Devices and browsers
+
+Selfie Studio runs in current versions of Safari, Chrome, Edge, Firefox and Samsung Internet on iPhone, iPad, Android, Mac, Windows, Linux and ChromeOS. The camera needs an **https** address (such as the Cloudflare Pages site) or `localhost`.
+
+- **iPhone and iPad (iOS / iPadOS 15 or later):** open the site in Safari and allow the camera. **Save strip** opens the share sheet, so you can tap *Save Image* to put it in Photos. **Print** also opens the share sheet; choose *Print* to use an AirPrint printer and pick 4×6 paper. For a full-screen kiosk, tap Share → *Add to Home Screen*, and use *Guided Access* to lock the iPad to the app.
+- **Android:** the same share sheet is used for saving and printing (through Mopria or the printer's app).
+- **Computers:** strips download as JPGs, and Print opens the browser's print dialog, or prints straight to a Wi-Fi printer when run with `npm start`.
+- Phones and tablets get a lighter live preview that adjusts itself if the device is slow. Full-resolution still capture is used where the browser supports it (Chrome and Edge); Safari and Firefox use the best video resolution the camera offers.
+
 ## Support links
 
 Selfie Studio is free. A quiet footer invites people to support its development through [Patreon](https://www.patreon.com/cw/kiberastories), [Ko-fi](https://ko-fi.com/kiberastories) or M-Pesa (+254711254986; tapping the button copies the number). To change these, edit `public/js/config.js`. Any link left empty is hidden.

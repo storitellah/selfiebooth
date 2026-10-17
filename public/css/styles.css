@@ -763,6 +763,7 @@ button.support-link:hover {
 }
 .sheet-dialog::backdrop {
   background: rgba(0, 0, 0, 0.55);
+  -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
 }
 .review {
@@ -1033,4 +1034,143 @@ button.support-link:hover {
   border-right: 2px dashed rgba(255, 255, 255, 0.85);
   box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35);
   pointer-events: none;
+}
+
+/* ── Cross-device support ───────────────────────────────────── */
+/* The camera <video> stays in the page (iOS needs that) but is never seen. */
+.camera-feed {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 2px;
+  height: 2px;
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+button,
+a,
+label,
+select,
+input {
+  touch-action: manipulation; /* no double-tap zoom delay on touch screens */
+  -webkit-tap-highlight-color: transparent;
+}
+.topbar,
+.studio,
+.support {
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+}
+.support {
+  padding-bottom: max(36px, env(safe-area-inset-bottom));
+}
+.eyeline {
+  padding-top: max(8px, env(safe-area-inset-top));
+}
+.sheet-dialog {
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+/* Hover wiggles only where there is a real pointer. */
+@media (hover: none) {
+  .shutter:hover:not(:disabled),
+  .strip-holder:hover,
+  .look:nth-child(odd):hover,
+  .look:nth-child(even):hover,
+  .brand:hover .brand-mark {
+    transform: none;
+  }
+  .strip-holder {
+    transform: rotate(-2deg);
+  }
+  .brand-mark {
+    transform: rotate(-8deg);
+  }
+}
+/* iOS zooms into any field under 16px when it is focused. */
+@media (pointer: coarse) {
+  input[type='text'],
+  select {
+    font-size: 16px;
+  }
+  .shutter {
+    padding: 14px 32px 14px 16px;
+  }
+}
+/* <dialog> fallback for older iPads/iPhones (iOS < 15.4). */
+dialog.dialog-fallback {
+  position: fixed;
+  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: auto;
+  z-index: 100;
+  display: block;
+  height: fit-content;
+}
+body.dialog-fallback-open::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 99;
+}
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  max-width: calc(100vw - 32px);
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: #2a1d1a;
+  color: #fff;
+  box-shadow: var(--shadow);
+  z-index: 200;
+  font-size: 0.9rem;
+}
+/* iPad landscape: keep camera, strip and settings side by side. */
+@media (min-width: 1000px) and (max-width: 1100px) and (pointer: coarse) {
+  .studio {
+    grid-template-columns: minmax(0, 1fr) 150px 300px;
+    gap: 18px;
+  }
+  .panel {
+    grid-column: auto;
+  }
+}
+/* Phones: smaller strip in the review, actions always within reach. */
+@media (max-width: 680px) {
+  .review {
+    gap: 16px;
+  }
+  .review-strip {
+    width: 120px;
+  }
+  .review-side h2 {
+    font-size: 1.5rem;
+  }
+  .review-actions {
+    position: sticky;
+    bottom: -18px;
+    margin: 0 -18px -18px;
+    padding: 12px 18px max(18px, env(safe-area-inset-bottom));
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+  }
+  .review-actions .btn {
+    flex: 1 1 45%;
+  }
 }

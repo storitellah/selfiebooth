@@ -3,6 +3,7 @@ import { BACKDROPS, DOWNLOAD_DPI, PRINT_DPI, SHOTS, FONTS, stampGeometry, parseS
 import { getPrinterStatus, listPrinters, configurePrinter, printViaServer, printViaBrowser } from './printing.js';
 import { listCameras, openCamera, describeCamera, captureStill, isProCamera } from './camera.js';
 import { SUPPORT } from './config.js';
+import { isMobile, releaseCanvas, canShareFiles, openDialog, closeDialog } from './device.js';
 
 const $ = (id) => document.getElementById(id);
 const COUNTDOWN_SECONDS = 3;
@@ -41,8 +42,13 @@ const state = {
   takenAt: null,
   activeGroup: getLook(settings.look).group,
 };
+// iOS Safari only delivers frames from a muted, inline video that is part of
+// the page, so keep it attached (but invisible) rather than off-DOM.
+for (const attr of ['muted', 'playsinline', 'autoplay']) state.video.setAttribute(attr, '');
 state.video.muted = true;
 state.video.playsInline = true;
+state.video.className = 'camera-feed';
+document.body.append(state.video);
 
 // ---------------------------------------------------------------------------
 // Camera
@@ -129,9 +135,12 @@ function updateEyeline(active = state.busy) {
 const preview = $('preview');
 const pctx = preview.getContext('2d', { willReadFrequently: true });
 let previewSized = false;
+// Phones and tablets get a lighter live preview; it adapts further if frames run slow.
+let previewMax = isMobile ? 720 : 960;
+let slowFrames = 0;
 function sizePreview() {
   previewSized = true;
-  const w = Math.min(960, Math.round(preview.clientWidth * Math.min(window.devicePixelRatio || 1, 1.5)) || 720);
+  const w = Math.min(previewMax, Math.round(preview.clientWidth * Math.min(window.devicePixelRatio || 1, 1.5)) || 720);
   preview.width = w;
   preview.height = Math.round(w / FRAME_ASPECT);
 }
@@ -153,12 +162,19 @@ function drawVideo(ctx, w, h) {
 function renderLoop() {
   if (state.video.readyState >= 2) {
     if (!previewSized) sizePreview();
+    const t0 = performance.now();
     drawVideo(pctx, preview.width, preview.height);
     applyLook(pctx, preview.width, preview.height, getLook(settings.look), { seed: 9 });
+    if (performance.now() - t0 > 34 && ++slowFrames > 20 && previewMax > 360) {
+      previewMax = Math.round(previewMax * 0.8);
+      previewSized = false;
+      slowFrames = 0;
+    }
   }
   requestAnimationFrame(renderLoop);
 }
 window.addEventListener('resize', () => (previewSized = false));
+window.addEventListener('orientationchange', () => (previewSized = false));
 
 // ---------------------------------------------------------------------------
 // Look picker with live thumbnails
@@ -170,7 +186,7 @@ function buildLookPicker() {
   for (const g of GROUPS) {
     const b = document.createElement('button');
     b.type = 'button';
-    b.role = 'tab';
+    b.setAttribute('role', 'tab');
     b.textContent = g.label;
     b.setAttribute('aria-selected', String(g.id === state.activeGroup));
     b.onclick = () => {
@@ -186,7 +202,7 @@ function buildLookPicker() {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'look';
-    b.role = 'option';
+    b.setAttribute('role', 'option');
     b.setAttribute('aria-selected', String(look.id === settings.look));
     const c = document.createElement('canvas');
     c.width = 168;
@@ -228,7 +244,7 @@ function buildBackdrops() {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'backdrop';
-    b.role = 'radio';
+    b.setAttribute('role', 'radio');
     b.setAttribute('aria-checked', String(bd.id === settings.backdrop));
     const sw = document.createElement('i');
     sw.style.background = bd.paper;
@@ -297,6 +313,7 @@ function refreshStripPreview() {
     out.width = strip.width;
     out.height = strip.height;
     out.getContext('2d').drawImage(strip, 0, 0);
+    releaseCanvas(strip);
   });
 }
 
@@ -331,6 +348,7 @@ async function runSession() {
   if (state.busy || !state.stream) return;
   state.busy = true;
   $('shutter').disabled = true;
+  state.shots.forEach(releaseCanvas);
   state.shots = [];
   state.takenAt = new Date();
   setDots(0);
@@ -368,6 +386,8 @@ async function buildOutputs() {
   const strip = renderStrip(state.shots, stripOptions({ dpi: DOWNLOAD_DPI, placeholder: false }));
   const sheet = renderSheet(strip, { backdrop: settings.backdrop, dpi: PRINT_DPI });
   const [stripJpg, sheetJpg] = await Promise.all([canvasToJpeg(strip, { dpi: DOWNLOAD_DPI, quality: 0.95 }), canvasToJpeg(sheet, { dpi: PRINT_DPI, quality: 0.95 })]);
+  releaseCanvas(strip);
+  releaseCanvas(sheet);
   if (generation !== buildGeneration) return false; // a newer restyle superseded this one
   if (state.lastStrip) {
     URL.revokeObjectURL(state.lastStrip.stripUrl);
@@ -390,14 +410,14 @@ async function finishSession() {
   syncReviewSelects();
   await buildOutputs();
   const dlg = $('review');
-  if (!dlg.open) dlg.showModal();
+  openDialog(dlg);
 
   if (settings.autoPrint && state.printer.connected && state.printer.ready) {
     await printSheet();
   } else if (settings.autoPrint && state.printer.connected) {
     setPrintStatus(`Printer isn't ready (${(state.printer.reasons || []).join(', ') || state.printer.state}). Press Print once it is.`, 'err');
   } else if (settings.autoPrint) {
-    setPrintStatus('No Wi-Fi printer connected. Download your strip, or press Print to use a printer on this device.');
+    setPrintStatus('No Wi-Fi printer connected. Save your strip, or press Print to use a printer from this device.');
   } else {
     setPrintStatus('Ready to download or print.');
   }
@@ -413,6 +433,11 @@ async function printSheet() {
       setChip('busy', 'Printing…');
       await printViaServer(state.lastStrip.sheetJpg, settings.copies);
       setPrintStatus(`Printing ${settings.copies} sheet${settings.copies > 1 ? 's' : ''} of 4×6 (${settings.copies * 2} strips) — cut each down the middle.`, 'ok');
+    } else if (isMobile && canShareFiles(sheetFile())) {
+      // Phones/tablets: the share sheet has Print (AirPrint / Mopria) and sizes photos properly.
+      setPrintStatus('Choose Print, then 4×6 photo paper.');
+      await shareFile(sheetFile());
+      setPrintStatus('Sent to the share sheet.');
     } else {
       setPrintStatus('Opening print dialog — choose 4×6 photo paper, borderless, 100% scale.');
       await printViaBrowser(state.lastStrip.sheetJpg);
@@ -432,10 +457,39 @@ function fileName(kind) {
   return `selfie-studio-${kind}-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.jpg`;
 }
 
-function download(url, name) {
+function stripFile() {
+  return new File([state.lastStrip.stripJpg], fileName('strip'), { type: 'image/jpeg' });
+}
+
+function sheetFile() {
+  return new File([state.lastStrip.sheetJpg], fileName('4x6'), { type: 'image/jpeg' });
+}
+
+async function shareFile(file) {
+  try {
+    await navigator.share({ files: [file], title: 'Selfie Studio' });
+  } catch (err) {
+    if (err.name !== 'AbortError') throw err; // closing the sheet is fine
+  }
+}
+
+/**
+ * Save a photo. Phones and tablets open the share sheet so people can tap
+ * "Save Image" straight into Photos; everything else downloads the JPG.
+ */
+async function saveFile(file, url) {
+  if (isMobile && canShareFiles(file)) {
+    try {
+      await shareFile(file);
+      return;
+    } catch {
+      /* fall back to a download */
+    }
+  }
   const a = document.createElement('a');
   a.href = url;
-  a.download = name;
+  a.download = file.name;
+  a.rel = 'noopener';
   document.body.append(a);
   a.click();
   a.remove();
@@ -512,7 +566,7 @@ async function openPrinterDialog() {
   $('printerUri').value = p.source === 'manual' ? p.uri : '';
   $('borderless').checked = p.borderless !== false;
   for (const id of ['scanPrinters', 'useAuto', 'savePrinter', 'printerUri', 'borderless']) $(id).disabled = !p.server;
-  if (!dlg.open) dlg.showModal();
+  openDialog(dlg);
   if (p.server) scan(false);
   else $('printerList').innerHTML = '<li class="muted">Printer discovery needs the booth server.</li>';
 }
@@ -591,6 +645,20 @@ function buildSupport() {
   }
   wrap.hidden = !wrap.children.length;
 }
+
+// ---------------------------------------------------------------------------
+// Friendly error reporting (instead of a silently broken page)
+
+let toastTimer;
+function showToast(text) {
+  const t = $('toast');
+  t.textContent = text;
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => (t.hidden = true), 6000);
+}
+window.addEventListener('error', (e) => showToast(`Something went wrong: ${e.message || 'unknown error'}`));
+window.addEventListener('unhandledrejection', (e) => showToast(`Something went wrong: ${e.reason?.message || e.reason || 'unknown error'}`));
 
 // ---------------------------------------------------------------------------
 // Wire up
@@ -672,11 +740,16 @@ function init() {
     }
   });
 
-  $('downloadStrip').onclick = () => state.lastStrip && download(state.lastStrip.stripUrl, fileName('strip'));
-  $('downloadSheet').onclick = () => state.lastStrip && download(state.lastStrip.sheetUrl, fileName('4x6'));
+  $('downloadStrip').onclick = () => state.lastStrip && saveFile(stripFile(), state.lastStrip.stripUrl);
+  $('downloadSheet').onclick = () => state.lastStrip && saveFile(sheetFile(), state.lastStrip.sheetUrl);
+  if (isMobile) {
+    $('downloadStrip').textContent = 'Save strip';
+    $('downloadSheet').textContent = 'Save 4×6 sheet';
+  }
   $('printNow').onclick = printSheet;
   $('newSession').onclick = () => {
-    $('review').close();
+    closeDialog($('review'));
+    state.shots.forEach(releaseCanvas);
     state.shots = [];
     setDots(0);
     refreshStripPreview();
@@ -698,6 +771,21 @@ function init() {
   $('scanPrinters').onclick = () => scan(true);
   $('savePrinter').onclick = () => savePrinter($('printerUri').value.trim());
   $('useAuto').onclick = () => savePrinter(null);
+  $('closePrinter').onclick = () => closeDialog($('printerDialog'));
+  for (const dlg of document.querySelectorAll('dialog')) {
+    dlg.addEventListener('cancel', (e) => {
+      e.preventDefault();
+      closeDialog(dlg);
+    });
+  }
+
+  // Phones and tablets stop the camera when the app is backgrounded; bring it back.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible' || state.busy) return;
+    const track = state.stream?.getVideoTracks()[0];
+    if (!track || track.readyState === 'ended') startCamera();
+    else state.video.play().catch(() => {});
+  });
 
   refreshStripPreview();
   refreshPrinter();

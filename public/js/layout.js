@@ -5,6 +5,7 @@
 //             so one cut down the long centre line gives two 2" x 6" strips.
 
 import { applyLook } from './filters.js';
+import { releaseCanvas } from './device.js';
 
 export const STRIP_IN = { w: 2, h: 6 };
 export const SHEET_IN = { w: 4, h: 6 };
@@ -370,6 +371,7 @@ export function renderStrip(
       ctx.shadowBlur = border * 1.2;
       ctx.shadowOffsetY = border * 0.35;
       ctx.drawImage(art, -geo.W / 2, -geo.H / 2, geo.W, geo.H);
+      releaseCanvas(art);
       ctx.restore();
       return;
     }
@@ -401,6 +403,8 @@ export function renderStrip(
     }
     ctx.restore();
   });
+
+  releaseCanvas(frame);
 
   // Footer: optional caption, then the date & time the strip was taken.
   const f = L.footer;

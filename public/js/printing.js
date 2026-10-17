@@ -51,18 +51,26 @@ export async function printViaServer(jpegBlob, copies = 1) {
  * Print through the browser's dialog using a 4in x 6in @page.
  * Launch Chrome with --kiosk-printing to make this silent.
  */
+let lastPrintUrl = null;
 export function printViaBrowser(jpegBlob) {
   const img = document.getElementById('printImg');
+  // Keep the previous image alive until now: mobile print previews render late.
+  if (lastPrintUrl) URL.revokeObjectURL(lastPrintUrl);
   const url = URL.createObjectURL(jpegBlob);
+  lastPrintUrl = url;
   return new Promise((resolve) => {
     img.onload = () => {
+      let finished = false;
       const done = () => {
+        if (finished) return;
+        finished = true;
         window.removeEventListener('afterprint', done);
-        URL.revokeObjectURL(url);
         resolve();
       };
       window.addEventListener('afterprint', done);
       window.print();
+      // Mobile Safari returns from print() at once and may never fire afterprint.
+      setTimeout(done, 2000);
     };
     img.src = url;
   });

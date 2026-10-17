@@ -4,6 +4,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#0f0e0d" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Selfie Studio" />
+    <meta name="format-detection" content="telephone=no" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="icon-180.png" />
     <meta name="description" content="Selfie Studio by Storitellah — a free photo booth that makes 2×6 photo strips and prints them on 4×6 paper." />
     <title>Selfie Studio by Storitellah</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='6' y='16' width='52' height='38' rx='10' fill='%23d9a75b'/%3E%3Crect x='22' y='9' width='20' height='11' rx='4' fill='%23d9a75b'/%3E%3Ccircle cx='32' cy='35' r='12' fill='%23151311'/%3E%3Ccircle cx='32' cy='35' r='6' fill='%23d9a75b'/%3E%3Cpath d='M52 4l2 5 5 2-5 2-2 5-2-5-5-2 5-2z' fill='%23e86a5a'/%3E%3C/svg%3E" />
@@ -182,7 +189,7 @@
         <div class="dialog-actions">
           <button id="useAuto" class="btn btn-ghost" type="button">Auto-detect</button>
           <button id="savePrinter" class="btn" type="button">Use this printer</button>
-          <button class="btn btn-ghost" value="close">Close</button>
+          <button id="closePrinter" class="btn btn-ghost" type="button">Close</button>
         </div>
         <p class="muted small-print">No printer server? The <b>Print</b> button falls back to your browser's print dialog with a 4×6 page set up for you.</p>
       </form>
@@ -191,6 +198,13 @@
     <!-- Used for browser printing only -->
     <div id="printArea" aria-hidden="true"><img id="printImg" alt="" /></div>
 
+    <div id="toast" class="toast" role="alert" hidden></div>
+
     <script type="module" src="js/app.js"></script>
+    <script nomodule>
+      document.getElementById('cameraMsg').hidden = false;
+      document.querySelector('.camera-msg-title').textContent = 'Please update your browser';
+      document.querySelector('.camera-msg-body').textContent = 'Selfie Studio needs a recent version of Safari, Chrome, Edge, Firefox or Samsung Internet.';
+    </script>
   </body>
 </html>
