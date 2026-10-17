@@ -6,6 +6,7 @@
 
 import { applyLook } from './filters.js';
 import { releaseCanvas } from './device.js';
+import { placeStickers, drawStickers } from './stickers.js';
 
 export const STRIP_IN = { w: 2, h: 6 };
 export const SHEET_IN = { w: 4, h: 6 };
@@ -314,7 +315,7 @@ function fitFont(ctx, text, maxW, size, font, weight = '') {
  */
 export function renderStrip(
   shots,
-  { look, backdrop = 'black', caption = '', stamp = '', dpi = DOWNLOAD_DPI, tilt = false, postage = false, stampShape = 'portrait', stampText = '', stampValues = [], placeholder = true } = {},
+  { look, backdrop = 'black', caption = '', stamp = '', dpi = DOWNLOAD_DPI, tilt = false, postage = false, stampShape = 'portrait', stampText = '', stampValues = [], stickers = [], placeholder = true } = {},
 ) {
   const L = stripLayout(dpi);
   const bd = BACKDROPS[backdrop] || BACKDROPS.black;
@@ -329,6 +330,15 @@ export function renderStrip(
   fctx.imageSmoothingQuality = 'high';
   const border = Math.round(0.035 * dpi);
 
+  // Stickers sit inside the part of the photo that stays visible (the stamp window in stamp mode).
+  const stickerArea = (w, h) => {
+    if (!postage) return { x: 0, y: 0, w, h };
+    const label = String(stampText || '').trim();
+    const { aspect } = stampGeometry(stampShape, w, h, Boolean(label || stampValues.length));
+    const c = coverCrop(w, h, aspect);
+    return { x: c.sx, y: c.sy, w: c.sw, h: c.sh };
+  };
+
   L.frames.forEach((r, i) => {
     const shot = shots[i];
     let img = null;
@@ -338,6 +348,7 @@ export function renderStrip(
       const c = coverCrop(sw, sh, r.w / r.h);
       fctx.drawImage(shot, c.sx, c.sy, c.sw, c.sh, 0, 0, r.w, r.h);
       applyLook(fctx, r.w, r.h, look, { seed: 101 + i });
+      if (stickers.length) drawStickers(fctx, placeStickers(stickers, stickerArea(r.w, r.h), i));
       img = frame;
     } else if (!placeholder) {
       return;

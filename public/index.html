@@ -85,6 +85,15 @@
 
       <!-- Controls -->
       <aside class="panel" aria-label="Studio settings">
+        <div class="panel-section stickers-section">
+          <h2>Stickers <span class="spark-inline">✦</span></h2>
+          <div class="sticker-grid" id="stickerGrid" role="group" aria-label="Stickers"></div>
+          <div class="sticker-actions">
+            <button id="stickerSurprise" class="btn btn-ghost btn-small" type="button">Surprise me!</button>
+            <button id="stickerClear" class="btn btn-ghost btn-small" type="button">No stickers</button>
+          </div>
+        </div>
+
         <div class="panel-section">
           <h2>Light &amp; look</h2>
           <div class="tabs" role="tablist" id="lookTabs"></div>
@@ -160,6 +169,10 @@
             <label id="reviewShapeWrap">Shape <select id="reviewShape"><option value="portrait">Portrait</option><option value="square">Square</option></select></label>
             <label class="review-caption">Caption <input id="reviewCaption" type="text" maxlength="40" placeholder="Optional" autocomplete="off" /></label>
             <label class="review-caption" id="reviewStampWrap">Stamp text <input id="reviewStampText" type="text" maxlength="30" placeholder="Optional" autocomplete="off" /></label>
+          </div>
+          <div class="review-stickers">
+            <span>Stickers</span>
+            <div class="sticker-grid compact" id="reviewStickerGrid" role="group" aria-label="Stickers"></div>
           </div>
           <div class="sheet-preview" aria-label="4 by 6 print preview">
             <img id="reviewSheet" alt="4 by 6 print sheet with two strips" />

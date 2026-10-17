@@ -1174,3 +1174,83 @@ body.dialog-fallback-open::after {
     flex: 1 1 45%;
   }
 }
+
+/* ── Stickers ───────────────────────────────────────────────── */
+.sticker-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.sticker-grid.compact {
+  grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+  gap: 6px;
+}
+.sticker-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  padding: 2px;
+  border: 2px dashed var(--line);
+  border-radius: 14px;
+  background: var(--bg-2);
+  cursor: pointer;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s, background 0.2s;
+}
+.sticker-btn canvas {
+  width: 100%;
+  height: auto;
+  max-width: 72px;
+  filter: grayscale(0.35) opacity(0.8);
+  transition: filter 0.2s;
+}
+.sticker-btn[aria-pressed='true'] {
+  border: 2px solid var(--pop);
+  background: color-mix(in srgb, var(--pop) 14%, var(--bg-2));
+}
+.sticker-btn[aria-pressed='true'] canvas {
+  filter: none;
+}
+.sticker-btn[aria-pressed='true']::after {
+  content: '✓';
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--pop);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+.sticker-btn.pop {
+  animation: sticker-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes sticker-pop {
+  40% {
+    transform: scale(1.18) rotate(-6deg);
+  }
+}
+@media (hover: hover) {
+  .sticker-btn:hover {
+    transform: rotate(-4deg) scale(1.05);
+  }
+}
+.sticker-actions {
+  display: flex;
+  gap: 8px;
+}
+.sticker-actions .btn {
+  flex: 1;
+}
+.review-stickers {
+  margin-bottom: 18px;
+  font-size: 0.9rem;
+}
+.review-stickers > span {
+  display: block;
+  margin-bottom: 6px;
+}

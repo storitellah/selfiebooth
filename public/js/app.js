@@ -3,6 +3,7 @@ import { BACKDROPS, DOWNLOAD_DPI, PRINT_DPI, SHOTS, FONTS, stampGeometry, parseS
 import { getPrinterStatus, listPrinters, configurePrinter, printViaServer, printViaBrowser } from './printing.js';
 import { listCameras, openCamera, describeCamera, captureStill, isProCamera } from './camera.js';
 import { SUPPORT } from './config.js';
+import { STICKERS, placeStickers, drawStickers, stickerIcon } from './stickers.js';
 import { isMobile, releaseCanvas, canShareFiles, openDialog, closeDialog } from './device.js';
 
 const $ = (id) => document.getElementById(id);
@@ -12,7 +13,7 @@ const FRAME_ASPECT = stripLayout().aspect;
 // ---------------------------------------------------------------------------
 // Settings (remembered per browser; everything works without storage too)
 
-const DEFAULT_SETTINGS = { look: 'natural', backdrop: 'black', tilt: false, postage: false, stampShape: 'portrait', autoPrint: true, copies: 1, mirror: true, cameraId: null, eyeline: 'auto' };
+const DEFAULT_SETTINGS = { look: 'natural', backdrop: 'black', tilt: false, postage: false, stampShape: 'portrait', stickers: [], autoPrint: true, copies: 1, mirror: true, cameraId: null, eyeline: 'auto' };
 const settings = { ...DEFAULT_SETTINGS };
 try {
   Object.assign(settings, JSON.parse(localStorage.getItem('selfiestudio') || '{}'));
@@ -165,6 +166,11 @@ function renderLoop() {
     const t0 = performance.now();
     drawVideo(pctx, preview.width, preview.height);
     applyLook(pctx, preview.width, preview.height, getLook(settings.look), { seed: 9 });
+    if (settings.stickers.length) {
+      // Show stickers exactly where they'll land on the next photo.
+      const next = state.busy ? Math.min(state.shots.length, SHOTS - 1) : 0;
+      drawStickers(pctx, placeStickers(settings.stickers, previewStickerArea(), next));
+    }
     if (performance.now() - t0 > 34 && ++slowFrames > 20 && previewMax > 360) {
       previewMax = Math.round(previewMax * 0.8);
       previewSized = false;
@@ -175,6 +181,64 @@ function renderLoop() {
 }
 window.addEventListener('resize', () => (previewSized = false));
 window.addEventListener('orientationchange', () => (previewSized = false));
+
+function previewStickerArea() {
+  const w = preview.width;
+  const h = preview.height;
+  if (!settings.postage) return { x: 0, y: 0, w, h };
+  const slot = stripLayout().frames[0];
+  const hasBand = Boolean(settings.stampText.trim() || parseStampValues(settings.stampValues).length);
+  const { aspect } = stampGeometry(settings.stampShape, slot.w, slot.h, hasBand);
+  const c = coverCrop(w, h, aspect);
+  return { x: c.sx, y: c.sy, w: c.sw, h: c.sh };
+}
+
+// ---------------------------------------------------------------------------
+// Sticker picker (in the panel and on the review screen)
+
+const stickerGrids = [];
+function buildStickerGrid(container, onChange) {
+  container.innerHTML = '';
+  for (const s of STICKERS) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'sticker-btn';
+    b.dataset.sticker = s.id;
+    b.title = s.name;
+    b.setAttribute('aria-label', s.name);
+    b.append(stickerIcon(s.id, container.classList.contains('compact') ? 52 : 72));
+    b.onclick = () => {
+      const on = settings.stickers.includes(s.id);
+      settings.stickers = on ? settings.stickers.filter((x) => x !== s.id) : [...settings.stickers, s.id];
+      b.classList.remove('pop');
+      void b.offsetWidth;
+      if (!on) b.classList.add('pop');
+      stickersChanged(onChange);
+    };
+    container.append(b);
+  }
+  stickerGrids.push(container);
+  syncStickerGrids();
+}
+
+function syncStickerGrids() {
+  for (const g of stickerGrids) {
+    for (const b of g.children) b.setAttribute('aria-pressed', String(settings.stickers.includes(b.dataset.sticker)));
+  }
+}
+
+function stickersChanged(onChange) {
+  persist();
+  syncStickerGrids();
+  refreshStripPreview();
+  onChange?.();
+}
+
+function surpriseStickers() {
+  const pool = STICKERS.map((s) => s.id).sort(() => Math.random() - 0.5);
+  settings.stickers = pool.slice(0, 3 + Math.floor(Math.random() * 3));
+  stickersChanged();
+}
 
 // ---------------------------------------------------------------------------
 // Look picker with live thumbnails
@@ -297,6 +361,7 @@ function stripOptions(overrides = {}) {
     stampShape: settings.stampShape,
     stampText: settings.stampText,
     stampValues: parseStampValues(settings.stampValues),
+    stickers: settings.stickers,
     stamp: formatStamp(state.takenAt || new Date()),
     ...overrides,
   };
@@ -682,6 +747,17 @@ function init() {
       persist();
       after?.();
     };
+  };
+  buildStickerGrid($('stickerGrid'));
+  let stickerTimer;
+  buildStickerGrid($('reviewStickerGrid'), () => {
+    clearTimeout(stickerTimer);
+    stickerTimer = setTimeout(restyleFromReview, 250);
+  });
+  $('stickerSurprise').onclick = surpriseStickers;
+  $('stickerClear').onclick = () => {
+    settings.stickers = [];
+    stickersChanged();
   };
   bindCheck('tilt', 'tilt', refreshStripPreview);
   bindCheck('postage', 'postage', () => {
