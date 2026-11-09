@@ -399,6 +399,14 @@
         <h2 id="printerTitle">Printer</h2>
         <p id="printerDetail" class="printer-detail" role="status"></p>
         <button id="testPrint" class="btn btn-accent btn-small" type="button"><svg><use href="#i-printer" /></svg>test print</button>
+        <div id="getApp" class="get-app" hidden>
+          <h3>Install Selfie Studio on your computer (2 minutes, free)</h3>
+          <p><b>Mac:</b> open <b>Terminal</b> (press ⌘ Space, type “Terminal”, press Return), paste this line and press Return:</p>
+          <div class="cmd-row"><code id="cmdMac">curl -fsSL https://selfiebooth.pages.dev/install.sh | bash</code><button class="btn btn-ghost btn-small" type="button" data-copy="cmdMac">copy</button></div>
+          <p><b>Windows:</b> open <b>PowerShell</b> (Start menu → type “PowerShell”), paste this line and press Enter:</p>
+          <div class="cmd-row"><code id="cmdWin">irm https://selfiebooth.pages.dev/install.ps1 | iex</code><button class="btn btn-ghost btn-small" type="button" data-copy="cmdWin">copy</button></div>
+          <p class="small-print">It installs into a “Selfie Studio” folder, adds a <b>Selfie Studio</b> shortcut to your Desktop and opens the booth with your Wi-Fi printer connected. Next time, just double-click the shortcut. When macOS asks to “find devices on your local network”, choose <b>Allow</b>.</p>
+        </div>
         <h3>Printers found (Wi-Fi, Bluetooth, USB)</h3>
         <ul id="printerList" class="printer-list"></ul>
         <button id="scanPrinters" class="btn btn-ghost btn-small" type="button">scan again</button>

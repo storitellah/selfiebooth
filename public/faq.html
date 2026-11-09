@@ -40,6 +40,12 @@
         <details><summary>How do I share my strip on WhatsApp or AirDrop?</summary>
           <p>After the photos, press <b>share</b>. On iPhone, iPad, Android, Mac (Safari) and Windows, this opens your device's share sheet, where you'll find WhatsApp, AirDrop, Messages, Instagram and your other apps. If your browser can't share files, you'll get a small menu instead. The WhatsApp button there copies the strip and opens WhatsApp, so you can paste it into a chat.</p></details>
 
+        <details><summary>How do I install Selfie Studio on my computer (for automatic printing)?</summary>
+          <p>The website can take, share and save photos. To print automatically to a Wi-Fi printer, Selfie Studio also needs to run on a computer on the same Wi-Fi. It's free and takes about two minutes.</p>
+          <p><b>Mac:</b> open <b>Terminal</b> (⌘ Space → type “Terminal” → Return), paste <code>curl -fsSL https://selfiebooth.pages.dev/install.sh | bash</code> and press Return.</p>
+          <p><b>Windows:</b> open <b>PowerShell</b> from the Start menu, paste <code>irm https://selfiebooth.pages.dev/install.ps1 | iex</code> and press Enter.</p>
+          <p>It installs into a “Selfie Studio” folder in your home folder, downloads what it needs (no admin password), adds a <b>Selfie Studio</b> shortcut to your Desktop and opens the booth at <code>localhost:8080</code>. Next time, double-click the shortcut. Run the same line again any time to update.</p></details>
+
         <details><summary>How does automatic printing work?</summary>
           <p>Run the Selfie Studio app on a computer on the same Wi-Fi as your photo printer: double-click <b>Start Selfie Studio</b>, or run <code>npm start</code>. It finds AirPrint, Mopria and other IPP printers on the network by itself. As soon as a printer is found, every new strip is sent to it on 4×6 paper. If you took photos before the printer was on, the waiting strip prints the moment the printer appears.</p></details>
 

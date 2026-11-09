@@ -1945,3 +1945,41 @@ body.dialog-fallback-open::after {
 .uri-row .btn-small {
   margin: 0;
 }
+
+/* Install instructions (website version) */
+.get-app {
+  margin-top: 6px;
+  padding: 12px 14px;
+  border: 2px dashed var(--ink);
+  border-radius: 14px;
+  background: #fffbe6;
+}
+.get-app h3 {
+  margin-top: 0 !important;
+}
+.get-app p {
+  margin: 8px 0 6px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.cmd-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.cmd-row code {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding: 8px 10px;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  background: #fff;
+  font-size: 0.85rem;
+  user-select: all;
+}
+.cmd-row .btn-small {
+  margin: 0;
+  flex: none;
+}

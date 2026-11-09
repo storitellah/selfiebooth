@@ -700,7 +700,7 @@ async function refreshPrinter() {
   const wasReady = state.printer.connected && state.printer.ready;
   state.printer = p;
   const via = TRANSPORT[p.transport] ? ` · ${TRANSPORT[p.transport]}` : '';
-  if (!p.server) setChip('idle', 'print from this device');
+  if (!p.server) setChip('idle', 'connect a printer');
   else if (p.connected && p.ready) setChip('ready', `${p.name || 'Printer'}${via} · ready`);
   else if (p.connected) setChip('error', `${p.name || 'Printer'} · ${p.reasons?.[0] || p.state}`);
   else setChip('idle', p.uri ? 'printer offline' : 'looking for printers…');
@@ -811,11 +811,19 @@ async function openPrinterDialog() {
   const p = await refreshPrinter();
   const via = TRANSPORT[p.transport] ? ` over ${TRANSPORT[p.transport]}` : '';
   $('printerDetail').textContent = !p.server
-    ? "This is the website version. Browsers can't reach printers on your home Wi-Fi from a website, so it can't find your printer. To print automatically, open Selfie Studio on your computer instead: double-click “Start Selfie Studio” in the Selfie Studio folder, and the booth opens at localhost:8080 with your printer connected. From this page, Print uses your device's print dialog."
+    ? "This is the website version. Websites can't reach printers on your home Wi-Fi, so install Selfie Studio on your computer (below) to print automatically. From this page, Print uses your device's own print dialog."
     : p.connected
       ? `Connected${via}: ${p.model || p.name} — ${p.ready ? 'ready' : p.reasons?.join(', ') || p.state} · paper ${describePaper(p.paper)}${p.source === 'auto' ? ' · found automatically' : ''}`
       : p.message || 'Not connected.';
   $('testPrint').disabled = !(p.connected && p.ready);
+  $('testPrint').hidden = !p.server;
+  $('getApp').hidden = !!p.server;
+  for (const id of ['printerList', 'scanPrinters', 'printerUri', 'checkPrinterBtn', 'borderless', 'useAuto', 'savePrinter']) {
+    const el = $(id).closest('.uri-row') || $(id).closest('label') || $(id);
+    el.hidden = !p.server;
+  }
+  for (const h of $('printerDialog').querySelectorAll('h3:not(.get-app h3)')) h.hidden = !p.server;
+  $('printerDialog').querySelector('.printer-form > .small-print').hidden = !p.server;
   $('printerUri').value = p.source === 'manual' ? p.uri : '';
   $('borderless').checked = p.borderless !== false;
   for (const id of ['scanPrinters', 'useAuto', 'savePrinter', 'printerUri', 'borderless', 'checkPrinterBtn']) $(id).disabled = !p.server;
@@ -1102,6 +1110,19 @@ function init() {
   $('closePrinter').onclick = () => closeDialog($('printerDialog'));
   $('testPrint').onclick = runTestPrint;
   $('checkPrinterBtn').onclick = checkTypedPrinter;
+  for (const b of document.querySelectorAll('[data-copy]')) {
+    b.onclick = async () => {
+      const text = $(b.dataset.copy).textContent;
+      try {
+        await navigator.clipboard.writeText(text);
+        b.textContent = 'copied ✓';
+      } catch {
+        getSelection().selectAllChildren($(b.dataset.copy));
+        b.textContent = 'press ⌘C';
+      }
+      setTimeout(() => (b.textContent = 'copy'), 2000);
+    };
+  }
   for (const dlg of document.querySelectorAll('dialog')) {
     dlg.addEventListener('cancel', (e) => {
       e.preventDefault();

@@ -4,6 +4,22 @@ A free photo booth that runs in a browser, by [Storitellah](https://storitellah.
 
 Selfie Studio has a hand-drawn sketchbook design. It opens on an overview of a sketched booth with hand-drawn layout ideas around it. **step inside** opens the studio, where the camera, settings tabs and live strip all fit on one laptop screen (a 14-inch MacBook or larger) without scrolling. On phones the studio becomes one scrolling column, with the **take photos** button pinned to the bottom. There's also an [FAQ](public/faq.html), a [privacy policy](public/privacy.html), and a link to [@storitellah on Instagram](https://instagram.com/storitellah).
 
+## Install on a computer (for automatic printing)
+
+**Mac:** paste this into Terminal.
+
+```bash
+curl -fsSL https://selfiebooth.pages.dev/install.sh | bash
+```
+
+**Windows:** paste this into PowerShell.
+
+```powershell
+irm https://selfiebooth.pages.dev/install.ps1 | iex
+```
+
+Either one installs into a "Selfie Studio" folder in your home folder. It downloads a private copy of Node.js if needed (no admin rights), adds a **Selfie Studio** shortcut to the Desktop and opens the booth at `http://localhost:8080`. Run it again to update; the saved printer is kept.
+
 ## Quick start
 
 ```bash
