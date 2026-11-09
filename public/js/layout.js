@@ -38,19 +38,32 @@ export function stripLayout(dpi = DOWNLOAD_DPI) {
 }
 
 /** Where each strip lands on the 4x6 sheet, and where to cut. */
-export function sheetLayout(dpi = PRINT_DPI) {
-  const W = Math.round(SHEET_IN.w * dpi);
-  const H = Math.round(SHEET_IN.h * dpi);
-  const stripW = W / 2;
+export function sheetLayout(dpi = PRINT_DPI, paper = SHEET_IN) {
+  // `paper` is in inches; photo printers differ slightly (SELPHY postcard is 100×148 mm).
+  const W = Math.round(paper.w * dpi);
+  const H = Math.round(paper.h * dpi);
+  const half = W / 2;
+  // Each half holds one 2×6 strip, scaled to fit and centred, so the cut
+  // down the middle always gives two equal strips.
+  const k = Math.min(half / STRIP_IN.w, H / STRIP_IN.h);
+  const w = STRIP_IN.w * k;
+  const h = STRIP_IN.h * k;
+  const y = (H - h) / 2;
   return {
     W,
     H,
     strips: [
-      { x: 0, y: 0, w: stripW, h: H },
-      { x: stripW, y: 0, w: stripW, h: H },
+      { x: (half - w) / 2, y, w, h },
+      { x: half + (half - w) / 2, y, w, h },
     ],
-    cutX: stripW,
+    cutX: half,
   };
+}
+
+/** Paper size in inches from millimetres (as reported by the printer). */
+export function paperFromMm(wmm, hmm) {
+  if (!wmm || !hmm) return SHEET_IN;
+  return { w: Math.min(wmm, hmm) / 25.4, h: Math.max(wmm, hmm) / 25.4 };
 }
 
 /** Centre-crop rectangle of a source so it fills `aspect` (w/h). */
@@ -441,8 +454,8 @@ export function renderStrip(
 }
 
 /** Lay two copies of a strip onto a 4x6 portrait sheet. */
-export function renderSheet(strip, { backdrop = 'black', dpi = PRINT_DPI, cutMarks = true } = {}) {
-  const S = sheetLayout(dpi);
+export function renderSheet(strip, { backdrop = 'black', dpi = PRINT_DPI, cutMarks = true, paper = SHEET_IN } = {}) {
+  const S = sheetLayout(dpi, paper);
   const bd = BACKDROPS[backdrop] || BACKDROPS.black;
   const canvas = createCanvas(S.W, S.H);
   const ctx = canvas.getContext('2d');

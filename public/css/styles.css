@@ -1921,3 +1921,27 @@ body.dialog-fallback-open::after {
   display: flex;
   justify-content: center;
 }
+
+/* Printer dialog extras */
+.printer-detail {
+  margin: 6px 0 12px;
+  padding: 10px 12px;
+  border: 2px dashed var(--line);
+  border-radius: 12px;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+.printer-detail:empty {
+  display: none;
+}
+.uri-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.uri-row input {
+  flex: 1;
+}
+.uri-row .btn-small {
+  margin: 0;
+}

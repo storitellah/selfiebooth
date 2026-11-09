@@ -397,19 +397,27 @@
     <dialog id="printerDialog" class="sheet-dialog small" aria-labelledby="printerTitle">
       <form method="dialog" class="printer-form">
         <h2 id="printerTitle">Printer</h2>
-        <p id="printerDetail" class="muted"></p>
+        <p id="printerDetail" class="printer-detail" role="status"></p>
+        <button id="testPrint" class="btn btn-accent btn-small" type="button"><svg><use href="#i-printer" /></svg>test print</button>
         <h3>Printers found (Wi-Fi, Bluetooth, USB)</h3>
         <ul id="printerList" class="printer-list"></ul>
         <button id="scanPrinters" class="btn btn-ghost btn-small" type="button">scan again</button>
         <h3>Or enter its address</h3>
-        <input id="printerUri" type="text" placeholder="ipp://192.168.1.40/ipp/print" autocomplete="off" />
-        <label class="row"><input id="borderless" type="checkbox" checked /> borderless (edge-to-edge) 4×6</label>
+        <div class="uri-row">
+          <input id="printerUri" type="text" placeholder="ipp://192.168.1.40/ipp/print" autocomplete="off" aria-label="Printer address" />
+          <button id="checkPrinterBtn" class="btn btn-ghost btn-small" type="button">check</button>
+        </div>
+        <label class="row"><input id="borderless" type="checkbox" checked /> borderless (edge-to-edge)</label>
         <div class="dialog-actions">
           <button id="useAuto" class="btn btn-ghost" type="button">auto-detect</button>
           <button id="savePrinter" class="btn" type="button">use this printer</button>
           <button id="closePrinter" class="btn btn-ghost" type="button">close</button>
         </div>
-        <p class="muted small-print">Bluetooth printers: pair the printer with the computer running Selfie Studio first (System Settings → Bluetooth, then add it as a printer). It will then appear here.</p>
+        <details class="pro-help">
+          <summary>Setting up a Canon SELPHY (CP1300 / CP1500)</summary>
+          <p>1. Load postcard paper and an ink cassette. 2. On the SELPHY, open <b>Wi-Fi settings → Connection method → Via Wi-Fi network</b> and join the same Wi-Fi as this computer (not “Direct connection”). 3. Keep the SELPHY on the home screen. It appears above within a few seconds; press <b>test print</b>. If it doesn't appear, find its IP address under <b>Wi-Fi settings → Confirm settings</b> and enter <code>ipp://THAT-IP/ipp/print</code> above.</p>
+        </details>
+        <p class="muted small-print">Bluetooth or USB printers: connect the printer to this computer and add it in the system's printer settings. It then appears in the list above.</p>
       </form>
     </dialog>
 

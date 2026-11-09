@@ -97,3 +97,17 @@ test('stamp values are parsed from free text', () => {
   assert.deepEqual(parseStampValues('10, 25 50;100'), ['10', '25', '50', '100']);
   assert.deepEqual(parseStampValues('  '), []);
 });
+
+import { paperFromMm } from '../public/js/layout.js';
+
+test('SELPHY postcard (100×148 mm) sheet still splits into two equal strips', () => {
+  const S = sheetLayout(300, paperFromMm(100, 148));
+  assert.equal(S.W, 1181);
+  assert.equal(S.H, 1748);
+  const [a, b] = S.strips;
+  assert.ok(Math.abs(a.w / a.h - 1 / 3) < 1e-9, 'strips keep the 2×6 shape');
+  assert.equal(a.w, b.w);
+  assert.ok(a.x >= 0 && a.x + a.w <= S.cutX + 1e-9, 'left strip in the left half');
+  assert.ok(b.x >= S.cutX - 1e-9 && b.x + b.w <= S.W + 1e-9, 'right strip in the right half');
+  assert.ok(Math.abs(a.x - (S.cutX - a.x - a.w)) < 1e-9, 'centred in its half');
+});

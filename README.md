@@ -10,6 +10,8 @@ Selfie Studio has a hand-drawn sketchbook design. It opens on an overview of a s
 npm start            # Node 18+, no dependencies to install
 ```
 
+Or double-click **Start Selfie Studio (Mac).command** / **Start Selfie Studio (Windows).bat**.
+
 Open **http://localhost:8080** on the computer the camera is plugged into. Browsers only allow camera access on `localhost` or over `https`. Then press **Take Photos** or the space bar.
 
 ## What it does
@@ -39,6 +41,16 @@ Selfie Studio runs in current versions of Safari, Chrome, Edge, Firefox and Sams
 ## Support links
 
 Selfie Studio is free. A quiet footer invites people to support its development through [Patreon](https://www.patreon.com/cw/kiberastories), [Ko-fi](https://ko-fi.com/kiberastories) or M-Pesa (+254711254986; tapping the button copies the number). To change these, edit `public/js/config.js`. Any link left empty is hidden.
+
+## Canon SELPHY CP1300 / CP1500
+
+1. Connect the SELPHY to your Wi-Fi: **Wi-Fi settings → Connection method → Via Wi-Fi network**, on the same network as the computer. Don't use Direct connection.
+2. Double-click **Start Selfie Studio (Mac).command** or **Start Selfie Studio (Windows).bat**. These need [Node.js](https://nodejs.org) LTS, a free one-time install. On a Mac, if it says the file is from an unidentified developer, right-click it and choose **Open**.
+3. The studio opens and finds the SELPHY automatically, including printers that only answer Bonjour by multicast, as SELPHYs do. In the printer settings, press **test print**.
+
+The SELPHY has no true 4×6 paper. Selfie Studio reads the printer's own paper list, picks **postcard (100×148 mm)** and lays the two strips out at exactly that size, borderless, as JPEG at 300 DPI. If a SELPHY isn't found, type `ipp://ITS-IP/ipp/print` into the printer settings and press **check**. The IP is under **Wi-Fi settings → Confirm settings** on the printer. A SELPHY added in macOS printer settings also works: its `Postcard.Fullbleed` size is chosen automatically.
+
+`test/helpers/selphy-sim.js` is a strict stand-in for the CP1300, used by the tests. It offers only postcard, card and L paper, accepts only JPEG/URF, refuses anything else, and answers Bonjour by multicast only.
 
 ## Wi-Fi printing
 

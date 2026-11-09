@@ -102,6 +102,17 @@ async function handleApi(req, res, url) {
       return sendJson(res, 200, await printer.status());
     }
 
+    case 'GET /api/printer/check': {
+      // Try an address before saving it: model, readiness and paper.
+      const uri = String(url.searchParams.get('uri') || '').trim();
+      if (!/^(ipps?|https?):\/\/|^cups:/i.test(uri)) return sendJson(res, 400, { ok: false, message: 'Enter an ipp:// address' });
+      try {
+        return sendJson(res, 200, { ok: true, uri, ...(await printer.check(uri)) });
+      } catch (err) {
+        return sendJson(res, 200, { ok: false, uri, message: err.message });
+      }
+    }
+
     case 'GET /api/printers':
       return sendJson(res, 200, { printers: await printer.discover({ force: url.searchParams.has('refresh') }) });
 
@@ -111,7 +122,8 @@ async function handleApi(req, res, url) {
       const jpeg = await readBody(req);
       if (jpeg[0] !== 0xff || jpeg[1] !== 0xd8) return sendJson(res, 400, { ok: false, message: 'Not a JPEG' });
       const copies = Math.min(10, Math.max(1, Number(url.searchParams.get('copies')) || 1));
-      const result = await printer.print(jpeg, { copies });
+      const jobName = url.searchParams.has('test') ? 'Selfie Studio test print' : undefined;
+      const result = await printer.print(jpeg, { copies, jobName });
       return sendJson(res, result.ok ? 200 : 502, result);
     }
 

@@ -1,6 +1,6 @@
 import { GROUPS, LOOKS, getLook, applyLook } from './filters.js';
-import { BACKDROPS, DOWNLOAD_DPI, PRINT_DPI, SHOTS, FONTS, stampGeometry, parseStampValues, stripLayout, coverCrop, renderStrip, renderSheet, canvasToJpeg, formatStamp } from './layout.js';
-import { getPrinterStatus, listPrinters, configurePrinter, printViaServer, printViaBrowser } from './printing.js';
+import { BACKDROPS, DOWNLOAD_DPI, PRINT_DPI, SHOTS, FONTS, stampGeometry, parseStampValues, stripLayout, coverCrop, renderStrip, renderSheet, canvasToJpeg, formatStamp, paperFromMm } from './layout.js';
+import { getPrinterStatus, listPrinters, configurePrinter, printViaServer, printViaBrowser, checkPrinter } from './printing.js';
 import { listCameras, openCamera, describeCamera, captureStill, isProCamera } from './camera.js';
 import { SUPPORT } from './config.js';
 import { STICKERS, placeStickers, drawStickers, stickerIcon } from './stickers.js';
@@ -514,8 +514,8 @@ async function printSheet() {
     if (state.printer.connected) {
       setPrintStatus(`Sending to ${state.printer.name || 'printer'}…`);
       setChip('busy', 'Printing…');
-      await printViaServer(state.lastStrip.sheetJpg, settings.copies);
-      setPrintStatus(`Printing ${settings.copies} sheet${settings.copies > 1 ? 's' : ''} of 4×6 (${settings.copies * 2} strips) — cut each down the middle.`, 'ok');
+      await printViaServer(await sheetForPrinter(), settings.copies);
+      setPrintStatus(`Printing ${settings.copies} sheet${settings.copies > 1 ? 's' : ''} on ${describePaper(state.printer.paper)} paper (${settings.copies * 2} strips) on ${state.printer.name || 'your printer'} — cut down the middle.`, 'ok');
     } else if (isMobile && canShareFiles(sheetFile())) {
       // Phones/tablets: the share sheet has Print (AirPrint / Mopria) and sizes photos properly.
       setPrintStatus('Choose Print, then 4×6 photo paper.');
@@ -718,17 +718,107 @@ async function refreshPrinter() {
 }
 let printerChecked = false;
 
+// ---------------------------------------------------------------------------
+// Print layout at the printer's own paper size, and the test print
+
+function printerPaper() {
+  const p = state.printer.paper;
+  return p?.wmm ? paperFromMm(p.wmm, p.hmm) : undefined;
+}
+
+/** The sheet sized for the connected printer (e.g. 100×148 mm on a Canon SELPHY). */
+async function sheetForPrinter() {
+  const paper = printerPaper();
+  const is4x6 = !paper || (Math.abs(paper.w - 4) < 0.04 && Math.abs(paper.h - 6) < 0.04);
+  if (is4x6) return state.lastStrip.sheetJpg;
+  const key = `${paper.w}x${paper.h}`;
+  if (state.lastStrip.printKey === key) return state.lastStrip.printJpg;
+  const strip = await createImageBitmap(state.lastStrip.stripJpg);
+  const sheet = renderSheet(strip, { backdrop: settings.backdrop, dpi: PRINT_DPI, paper });
+  strip.close?.();
+  const jpg = await canvasToJpeg(sheet, { dpi: PRINT_DPI, quality: 0.95 });
+  releaseCanvas(sheet);
+  Object.assign(state.lastStrip, { printKey: key, printJpg: jpg });
+  return jpg;
+}
+
+/** A small, recognisable test sheet: colour bars, numbers and the date. */
+async function testSheet() {
+  const shots = ['#ff6b5b', '#ffc928', '#4cc38a', '#7fd3ff'].map((colour, i) => {
+    const c = document.createElement('canvas');
+    c.width = 1200;
+    c.height = 860;
+    const g = c.getContext('2d');
+    g.fillStyle = colour;
+    g.fillRect(0, 0, c.width, c.height);
+    g.fillStyle = 'rgba(255,255,255,0.85)';
+    g.fillRect(0, c.height * 0.62, c.width, c.height * 0.38);
+    g.fillStyle = '#1d1b19';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.font = '700 300px "Shantell Sans", sans-serif';
+    g.fillText(String(i + 1), c.width / 2, c.height * 0.32);
+    g.font = '700 110px "Shantell Sans", sans-serif';
+    g.fillText(i === 0 ? 'test print ✓' : ['colour', 'edges', 'cut ↕'][i - 1], c.width / 2, c.height * 0.81);
+    return c;
+  });
+  await document.fonts?.load(`italic 600 40px ${FONTS.caption}`).catch(() => {});
+  const strip = renderStrip(shots, { look: getLook('natural'), backdrop: 'white', caption: 'Selfie Studio test', stamp: formatStamp(new Date()), dpi: 300, placeholder: false });
+  shots.forEach(releaseCanvas);
+  const sheet = renderSheet(strip, { backdrop: 'white', dpi: PRINT_DPI, paper: printerPaper() });
+  releaseCanvas(strip);
+  const jpg = await canvasToJpeg(sheet, { dpi: PRINT_DPI, quality: 0.92 });
+  releaseCanvas(sheet);
+  return jpg;
+}
+
+async function runTestPrint() {
+  const btn = $('testPrint');
+  btn.disabled = true;
+  $('printerDetail').textContent = 'Checking the printer…';
+  try {
+    const p = await refreshPrinter();
+    if (!p.connected) throw new Error(p.message || 'No printer connected');
+    if (!p.ready) throw new Error(`${p.name} isn't ready: ${p.reasons?.join(', ') || p.state}`);
+    $('printerDetail').textContent = `Sending a test print to ${p.name}…`;
+    const res = await printViaServer(await testSheet(), 1, { test: true });
+    $('printerDetail').textContent = `✓ Test print sent to ${p.name}${res.jobId ? ` (job ${res.jobId})` : ''}. It should come out in about a minute.`;
+  } catch (err) {
+    $('printerDetail').textContent = `✗ Test print failed: ${err.message}`;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function checkTypedPrinter() {
+  const uri = $('printerUri').value.trim();
+  if (!uri) return;
+  $('printerDetail').textContent = `Checking ${uri}…`;
+  const r = await checkPrinter(uri).catch((err) => ({ ok: false, message: err.message }));
+  $('printerDetail').textContent = r.ok
+    ? `✓ Found ${r.model || r.name || 'a printer'} — ${r.ready ? 'ready' : r.reasons?.join(', ') || r.state}${r.paper ? ` · paper ${describePaper(r.paper)}` : ''}. Press “use this printer”.`
+    : `✗ Couldn't reach ${uri}: ${r.message}`;
+}
+
+function describePaper(p) {
+  if (!p?.wmm) return '4×6 in';
+  if (Math.abs(p.wmm - 101.6) < 1 && Math.abs(p.hmm - 152.4) < 1) return '4×6 in';
+  return `${p.wmm}×${p.hmm} mm`;
+}
+
 async function openPrinterDialog() {
   const dlg = $('printerDialog');
   const p = await refreshPrinter();
+  const via = TRANSPORT[p.transport] ? ` over ${TRANSPORT[p.transport]}` : '';
   $('printerDetail').textContent = !p.server
-    ? 'Run the studio with `npm start` on a computer on the printer\'s Wi-Fi to print straight to it.'
+    ? 'Printers can only be reached when the Selfie Studio app runs on a computer on the printer\'s Wi-Fi (double-click “Start Selfie Studio”). On this page, Print uses your device\'s print dialog instead.'
     : p.connected
-      ? `Connected: ${p.name}${p.model && p.model !== p.name ? ` (${p.model})` : ''} — ${p.ready ? 'ready' : p.reasons?.join(', ') || p.state}${p.source === 'auto' ? ' · auto-detected' : ''}`
+      ? `Connected${via}: ${p.model || p.name} — ${p.ready ? 'ready' : p.reasons?.join(', ') || p.state} · paper ${describePaper(p.paper)}${p.source === 'auto' ? ' · found automatically' : ''}`
       : p.message || 'Not connected.';
+  $('testPrint').disabled = !(p.connected && p.ready);
   $('printerUri').value = p.source === 'manual' ? p.uri : '';
   $('borderless').checked = p.borderless !== false;
-  for (const id of ['scanPrinters', 'useAuto', 'savePrinter', 'printerUri', 'borderless']) $(id).disabled = !p.server;
+  for (const id of ['scanPrinters', 'useAuto', 'savePrinter', 'printerUri', 'borderless', 'checkPrinterBtn']) $(id).disabled = !p.server;
   openDialog(dlg);
   if (p.server) scan(false);
   else $('printerList').innerHTML = '<li class="muted">Printer discovery needs the booth server.</li>';
@@ -1010,6 +1100,8 @@ function init() {
   $('savePrinter').onclick = () => savePrinter($('printerUri').value.trim());
   $('useAuto').onclick = () => savePrinter(null);
   $('closePrinter').onclick = () => closeDialog($('printerDialog'));
+  $('testPrint').onclick = runTestPrint;
+  $('checkPrinterBtn').onclick = checkTypedPrinter;
   for (const dlg of document.querySelectorAll('dialog')) {
     dlg.addEventListener('cancel', (e) => {
       e.preventDefault();

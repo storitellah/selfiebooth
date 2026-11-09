@@ -31,8 +31,13 @@ export async function configurePrinter(body) {
 }
 
 /** Send the 4x6 JPEG to the Wi-Fi printer via the server. */
-export async function printViaServer(jpegBlob, copies = 1) {
-  const res = await fetch(`${API}/print?copies=${copies}`, {
+export async function checkPrinter(uri) {
+  const res = await fetch(`${API}/printer/check?uri=${encodeURIComponent(uri)}`, { cache: 'no-store' });
+  return res.json();
+}
+
+export async function printViaServer(jpegBlob, copies = 1, { test = false } = {}) {
+  const res = await fetch(`${API}/print?copies=${copies}${test ? '&test=1' : ''}`, {
     method: 'POST',
     headers: { 'Content-Type': 'image/jpeg' },
     body: jpegBlob,

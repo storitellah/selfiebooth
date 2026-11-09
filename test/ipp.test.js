@@ -78,13 +78,14 @@ test('prints a JPEG with borderless 4x6 media-col', async () => {
 });
 
 test('falls back to the media keyword when media-col is rejected', async () => {
-  const p = await fakePrinter((job, n) => ({ status: n === 1 ? 0x040b : 0, attrs: [] }));
+  // A printer that refuses media-col collections entirely.
+  const p = await fakePrinter((job) => ({ status: job.attrs['media-col'] ? 0x040b : 0, attrs: [] }));
   const r = await printJpeg(p.uri, Buffer.from([0xff, 0xd8]));
   p.server.close();
   assert.equal(r.ok, true);
-  assert.equal(p.jobs.length, 2);
-  assert.equal(p.jobs[1].attrs.media, 'na_index-4x6_4x6in');
-  assert.equal(p.jobs[1].attrs['media-col'], undefined);
+  assert.equal(p.jobs.length, 3); // borderless col → bordered col → keyword
+  assert.equal(p.jobs[2].attrs.media, 'na_index-4x6_4x6in');
+  assert.equal(p.jobs[2].attrs['media-col'], undefined);
 });
 
 test('reads printer attributes', async () => {
@@ -93,4 +94,29 @@ test('reads printer attributes', async () => {
   p.server.close();
   assert.equal(p.jobs[0].op, OP.getPrinterAttributes);
   assert.equal(attrs['printer-make-and-model'], 'Canon SELPHY');
+});
+
+import { mediaSize, chooseMedia } from '../lib/ipp.js';
+
+test('reads paper sizes from PWG media names', () => {
+  assert.deepEqual(mediaSize('na_index-4x6_4x6in'), { x: 10160, y: 15240 });
+  assert.deepEqual(mediaSize('jpn_hagaki_100x148mm'), { x: 10000, y: 14800 });
+  assert.deepEqual(mediaSize('om_l_89x119mm'), { x: 8900, y: 11900 });
+  assert.equal(mediaSize('custom_min_25.4x25.4mm'), null);
+  assert.equal(mediaSize('photo'), null);
+});
+
+test('picks the closest photo paper to 4x6', () => {
+  // Canon SELPHY: postcard only, no true 4x6.
+  assert.equal(chooseMedia(['om_card_54x86mm', 'jpn_hagaki_100x148mm', 'om_l_89x119mm']).keyword, 'jpn_hagaki_100x148mm');
+  // A printer with both picks exact 4x6.
+  assert.equal(chooseMedia(['iso_a4_210x297mm', 'jpn_hagaki_100x148mm', 'na_index-4x6_4x6in']).keyword, 'na_index-4x6_4x6in');
+  // 10x15 cm photo paper.
+  assert.equal(chooseMedia(['iso_a4_210x297mm', 'om_photo-10x15_100x150mm']).keyword, 'om_photo-10x15_100x150mm');
+  // Loaded paper wins over merely supported paper.
+  assert.equal(chooseMedia(['na_index-4x6_4x6in', 'jpn_hagaki_100x148mm'], ['jpn_hagaki_100x148mm']).keyword, 'jpn_hagaki_100x148mm');
+  // Nothing close (A4 office printer): fall back to plain 4x6.
+  const fb = chooseMedia(['iso_a4_210x297mm', 'na_letter_8.5x11in']);
+  assert.equal(fb.keyword, 'na_index-4x6_4x6in');
+  assert.equal(fb.matched, false);
 });
