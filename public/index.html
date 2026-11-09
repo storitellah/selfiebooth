@@ -402,9 +402,9 @@
         <h3>Printers found (Wi-Fi, Bluetooth, USB)</h3>
         <ul id="printerList" class="printer-list"></ul>
         <button id="scanPrinters" class="btn btn-ghost btn-small" type="button">scan again</button>
-        <h3>Or enter its address</h3>
+        <h3>Or type its IP address</h3>
         <div class="uri-row">
-          <input id="printerUri" type="text" placeholder="ipp://192.168.1.40/ipp/print" autocomplete="off" aria-label="Printer address" />
+          <input id="printerUri" type="text" placeholder="printer IP, e.g. 192.168.100.102" autocomplete="off" inputmode="url" aria-label="Printer IP address" />
           <button id="checkPrinterBtn" class="btn btn-ghost btn-small" type="button">check</button>
         </div>
         <label class="row"><input id="borderless" type="checkbox" checked /> borderless (edge-to-edge)</label>
@@ -415,7 +415,8 @@
         </div>
         <details class="pro-help">
           <summary>Setting up a Canon SELPHY (CP1300 / CP1500)</summary>
-          <p>1. Load postcard paper and an ink cassette. 2. On the SELPHY, open <b>Wi-Fi settings → Connection method → Via Wi-Fi network</b> and join the same Wi-Fi as this computer (not “Direct connection”). 3. Keep the SELPHY on the home screen. It appears above within a few seconds; press <b>test print</b>. If it doesn't appear, find its IP address under <b>Wi-Fi settings → Confirm settings</b> and enter <code>ipp://THAT-IP/ipp/print</code> above.</p>
+          <p>1. Load postcard paper and an ink cassette. 2. On the SELPHY, open <b>Wi-Fi settings → Connection method → Via Wi-Fi network</b> and join the same Wi-Fi as this computer (not “Direct connection”). 3. Keep the SELPHY on the home screen. It appears above within a few seconds; press <b>test print</b>. If it doesn't appear, find its IP address under <b>Wi-Fi settings → Confirm settings</b>, type it above (for example <code>192.168.100.102</code>) and press <b>check</b>.</p>
+          <p><b>On a Mac:</b> the first time, macOS asks whether Terminal may “find devices on your local network”. Choose <b>Allow</b>. If you missed it, turn it on in <b>System Settings → Privacy &amp; Security → Local Network</b>, then restart Selfie Studio.</p>
         </details>
         <p class="muted small-print">Bluetooth or USB printers: connect the printer to this computer and add it in the system's printer settings. It then appears in the list above.</p>
       </form>

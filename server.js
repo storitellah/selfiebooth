@@ -97,16 +97,24 @@ async function handleApi(req, res, url) {
 
     case 'POST /api/printer': {
       const body = await readJson(req);
-      if ('uri' in body) printer.setPrinter(body.uri ? String(body.uri).trim() : null);
+      if ('uri' in body) {
+        try {
+          await printer.setPrinterFrom(body.uri ? String(body.uri).trim() : null);
+        } catch (err) {
+          return sendJson(res, 400, { ok: false, message: err.message });
+        }
+      }
       printer.setOptions(body);
       return sendJson(res, 200, await printer.status());
     }
 
     case 'GET /api/printer/check': {
       // Try an address before saving it: model, readiness and paper.
-      const uri = String(url.searchParams.get('uri') || '').trim();
-      if (!/^(ipps?|https?):\/\/|^cups:/i.test(uri)) return sendJson(res, 400, { ok: false, message: 'Enter an ipp:// address' });
+      const input = String(url.searchParams.get('uri') || '').trim();
+      if (!input) return sendJson(res, 400, { ok: false, message: 'Enter the printer’s IP address, e.g. 192.168.1.40' });
+      let uri = input;
       try {
+        uri = await printer.resolve(input);
         return sendJson(res, 200, { ok: true, uri, ...(await printer.check(uri)) });
       } catch (err) {
         return sendJson(res, 200, { ok: false, uri, message: err.message });
@@ -159,7 +167,10 @@ server.listen(PORT, HOST, () => {
   }, 20000).unref();
   printer.discover({ force: true }).then((found) => {
     if (found.length) for (const p of found) console.log(`  🖨  ${p.name} — ${p.uri}`);
-    else console.log('  No printers found yet. The booth will keep looking (or set PRINTER_URI).');
+    else {
+      console.log('  No printers found yet. The booth keeps looking (Bonjour + a scan of this Wi-Fi).');
+      if (process.platform === 'darwin') console.log('  Mac: if macOS asked to "find devices on your local network", choose Allow (System Settings → Privacy & Security → Local Network).');
+    }
     if (printer.config.uri) console.log(`  Using printer: ${printer.config.uri}`);
   });
 });

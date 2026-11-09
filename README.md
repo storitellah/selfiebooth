@@ -48,6 +48,10 @@ Selfie Studio is free. A quiet footer invites people to support its development 
 2. Double-click **Start Selfie Studio (Mac).command** or **Start Selfie Studio (Windows).bat**. These need [Node.js](https://nodejs.org) LTS, a free one-time install. On a Mac, if it says the file is from an unidentified developer, right-click it and choose **Open**.
 3. The studio opens and finds the SELPHY automatically, including printers that only answer Bonjour by multicast, as SELPHYs do. In the printer settings, press **test print**.
 
+Selfie Studio finds the printer three ways. It listens for Bonjour (including printers that only reply by multicast, as SELPHYs do), asks `ippfind`, and, if Bonjour is blocked by the router, checks every address on your Wi-Fi (for example 192.168.100.1–254) for a printer on port 631. The last printer that worked is remembered. You can also type just the printer's IP address (for example `192.168.100.102`) into the printer settings; the app finds the right address path by itself.
+
+On a Mac, allow **Local Network** access for Terminal when macOS asks (System Settings → Privacy & Security → Local Network). Without it, macOS silently blocks the app from reaching any printer.
+
 The SELPHY has no true 4×6 paper. Selfie Studio reads the printer's own paper list, picks **postcard (100×148 mm)** and lays the two strips out at exactly that size, borderless, as JPEG at 300 DPI. If a SELPHY isn't found, type `ipp://ITS-IP/ipp/print` into the printer settings and press **check**. The IP is under **Wi-Fi settings → Confirm settings** on the printer. A SELPHY added in macOS printer settings also works: its `Postcard.Fullbleed` size is chosen automatically.
 
 `test/helpers/selphy-sim.js` is a strict stand-in for the CP1300, used by the tests. It offers only postcard, card and L paper, accepts only JPEG/URF, refuses anything else, and answers Bonjour by multicast only.

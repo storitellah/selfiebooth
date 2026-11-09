@@ -811,7 +811,7 @@ async function openPrinterDialog() {
   const p = await refreshPrinter();
   const via = TRANSPORT[p.transport] ? ` over ${TRANSPORT[p.transport]}` : '';
   $('printerDetail').textContent = !p.server
-    ? 'Printers can only be reached when the Selfie Studio app runs on a computer on the printer\'s Wi-Fi (double-click “Start Selfie Studio”). On this page, Print uses your device\'s print dialog instead.'
+    ? "This is the website version. Browsers can't reach printers on your home Wi-Fi from a website, so it can't find your printer. To print automatically, open Selfie Studio on your computer instead: double-click “Start Selfie Studio” in the Selfie Studio folder, and the booth opens at localhost:8080 with your printer connected. From this page, Print uses your device's print dialog."
     : p.connected
       ? `Connected${via}: ${p.model || p.name} — ${p.ready ? 'ready' : p.reasons?.join(', ') || p.state} · paper ${describePaper(p.paper)}${p.source === 'auto' ? ' · found automatically' : ''}`
       : p.message || 'Not connected.';

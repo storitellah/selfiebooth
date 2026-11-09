@@ -29,10 +29,14 @@ function reply(res, status, printerAttrs = [], jobAttrs = []) {
   res.end(encodeRequest({ operation: status, requestId: 1, groups }));
 }
 
-export function startSelphy({ state = 3, reasons = 'none' } = {}) {
+export function startSelphy({ state = 3, reasons = 'none', host = '127.0.0.1', port = 0, path = '/ipp/print' } = {}) {
   const jobs = [];
   const rejected = [];
   const server = http.createServer((req, res) => {
+    if (req.url !== path) {
+      res.writeHead(404).end();
+      return;
+    }
     const chunks = [];
     req.on('data', (c) => chunks.push(c));
     req.on('end', () => {
@@ -71,11 +75,11 @@ export function startSelphy({ state = 3, reasons = 'none' } = {}) {
     });
   });
   return new Promise((resolve) => {
-    server.listen(0, '127.0.0.1', () => {
-      const port = server.address().port;
+    server.listen(port, host, () => {
+      const actual = server.address().port;
       resolve({
-        port,
-        uri: `ipp://127.0.0.1:${port}/ipp/print`,
+        port: actual,
+        uri: `ipp://${host}:${actual}${path}`,
         jobs,
         rejected,
         close: () => new Promise((r) => server.close(r)),

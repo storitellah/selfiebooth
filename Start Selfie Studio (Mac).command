@@ -16,5 +16,7 @@ fi
 PORT="${PORT:-8080}"
 echo ""
 echo "  Starting Selfie Studio… (leave this window open while you use the booth)"
+echo "  If macOS asks whether Terminal may find devices on your local network, choose Allow —"
+echo "  that's how Selfie Studio reaches your Wi-Fi printer."
 ( sleep 2 && open "http://localhost:${PORT}/#studio" ) &
 PORT="$PORT" node server.js
