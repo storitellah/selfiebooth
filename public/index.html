@@ -1,188 +1,393 @@
 <!doctype html>
-<html lang="en" data-backdrop="black">
+<html lang="en" data-backdrop="black" data-view="home">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#0f0e0d" />
+    <meta name="theme-color" content="#f6f3ec" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Selfie Studio" />
     <meta name="format-detection" content="telephone=no" />
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="apple-touch-icon" href="icon-180.png" />
-    <meta name="description" content="Selfie Studio by Storitellah — a free photo booth that makes 2×6 photo strips and prints them on 4×6 paper." />
+    <meta name="description" content="Selfie Studio by Storitellah — a free online photo booth. Four poses, fun stickers, vintage looks, a 2×6 photo strip to share, and automatic 4×6 printing." />
+    <meta property="og:title" content="Selfie Studio by Storitellah" />
+    <meta property="og:description" content="A free online photo booth: four poses, fun stickers, vintage looks and printable photo strips." />
+    <meta property="og:image" content="icon-512.png" />
     <title>Selfie Studio by Storitellah</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='6' y='16' width='52' height='38' rx='10' fill='%23d9a75b'/%3E%3Crect x='22' y='9' width='20' height='11' rx='4' fill='%23d9a75b'/%3E%3Ccircle cx='32' cy='35' r='12' fill='%23151311'/%3E%3Ccircle cx='32' cy='35' r='6' fill='%23d9a75b'/%3E%3Cpath d='M52 4l2 5 5 2-5 2-2 5-2-5-5-2 5-2z' fill='%23e86a5a'/%3E%3C/svg%3E" />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,800;1,9..144,600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,800;1,9..144,600&family=Shantell+Sans:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="css/styles.css" />
   </head>
   <body>
-    <!-- Eye-contact guide: sits at the top edge, right under a laptop/phone camera -->
+    <!-- Shared hand-drawn wobble used by the sketch outlines -->
+    <svg class="defs" aria-hidden="true" focusable="false">
+      <filter id="rough" x="-5%" y="-5%" width="110%" height="110%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="4" />
+        <feDisplacementMap in="SourceGraphic" scale="3.2" />
+      </filter>
+      <filter id="rough-soft" x="-5%" y="-5%" width="110%" height="110%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="9" />
+        <feDisplacementMap in="SourceGraphic" scale="2.2" />
+      </filter>
+      <symbol id="i-instagram" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="2" /><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="2" /><circle cx="17.3" cy="6.7" r="1.3" fill="currentColor" /></symbol>
+      <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 15V3m0 0L7.5 7.5M12 3l4.5 4.5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" /></symbol>
+      <symbol id="i-printer" viewBox="0 0 24 24"><path d="M7 9V3h10v6M7 17H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-3M7 14h10v7H7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" /></symbol>
+      <symbol id="i-save" viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" /></symbol>
+      <symbol id="i-whatsapp" viewBox="0 0 24 24"><path d="M4 20l1.2-3.6A8 8 0 1 1 8 19z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" /><path d="M9 8.5c0 3 2.6 6 6 6.5l1.2-1.4-2-1-1 .8c-1-.4-2.3-1.6-2.7-2.7l.8-1-1-2z" fill="currentColor" /></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2" /><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3" fill="none" stroke="currentColor" stroke-width="2" /></symbol>
+    </svg>
+
+    <!-- Eye-contact guide: drops down right under a laptop/phone camera -->
     <div id="eyeline" class="eyeline" aria-hidden="true">
       <span class="eyeline-lens"></span>
       <span class="eyeline-count" id="eyelineCount"></span>
-      <span class="eyeline-label">Look here</span>
+      <span class="eyeline-label">look here!</span>
     </div>
 
-    <header class="topbar">
-      <div class="topbar-inner">
-        <a class="brand" href="https://storitellah.com" target="_blank" rel="noopener">
-          <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
-            <rect x="6" y="16" width="52" height="38" rx="10" />
-            <rect x="22" y="9" width="20" height="11" rx="4" />
-            <circle class="lens" cx="32" cy="35" r="12" />
-            <circle cx="32" cy="35" r="6" />
-            <path class="spark" d="M54 2l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" />
+    <!-- ═════════════════════════ OVERVIEW ═════════════════════════ -->
+    <section id="home" class="home" aria-label="Selfie Studio overview">
+      <div class="home-stage">
+        <!-- Left notes: hand-drawn layouts -->
+        <div class="notes notes-left">
+          <figure class="note-card tilt-l">
+            <svg viewBox="0 0 120 150" class="note-art" aria-hidden="true">
+              <g filter="url(#rough-soft)" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round">
+                <rect x="42" y="6" width="36" height="138" rx="2" />
+                <rect x="47" y="12" width="26" height="25" /><rect x="47" y="42" width="26" height="25" /><rect x="47" y="72" width="26" height="25" /><rect x="47" y="102" width="26" height="25" />
+                <path d="M53 27c3 3 9 3 13 0M53 57c3 3 9 3 13 0M53 87c3 3 9 3 13 0M53 117c3 3 9 3 13 0" stroke-width="1.8" />
+                <path d="M50 136h20" stroke-width="1.6" />
+              </g>
+            </svg>
+            <figcaption>classic 2×6 strip</figcaption>
+          </figure>
+          <figure class="note-card tilt-r">
+            <svg viewBox="0 0 120 150" class="note-art" aria-hidden="true">
+              <g filter="url(#rough-soft)" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round">
+                <rect x="36" y="6" width="48" height="138" rx="2" />
+                <g transform="rotate(-6 60 30)"><rect x="42" y="14" width="36" height="30" fill="#fff" /></g>
+                <g transform="rotate(5 60 64)"><rect x="42" y="49" width="36" height="30" fill="#fff" /></g>
+                <g transform="rotate(-4 60 98)"><rect x="42" y="83" width="36" height="30" fill="#fff" /></g>
+                <g transform="rotate(6 60 128)"><rect x="43" y="115" width="34" height="24" fill="#fff" /></g>
+              </g>
+            </svg>
+            <figcaption>tilted snapshots</figcaption>
+          </figure>
+        </div>
+
+        <!-- The booth -->
+        <div class="booth-wrap">
+          <svg class="booth" viewBox="0 0 640 600" role="img" aria-label="A hand-drawn photo booth with a curtain, sample photo strips, a printer slot and a sticker sheet">
+            <g filter="url(#rough)" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+              <!-- sign -->
+              <rect x="150" y="18" width="340" height="88" rx="6" />
+              <rect x="160" y="28" width="320" height="68" rx="4" stroke-width="2" />
+              <path d="M205 106v26M215 106v26M425 106v26M435 106v26" />
+              <!-- roof + body -->
+              <rect x="56" y="132" width="528" height="34" rx="3" />
+              <rect x="62" y="166" width="516" height="398" />
+              <path d="M330 166v398M482 166v398" />
+              <!-- sample strips window -->
+              <rect x="90" y="196" width="212" height="150" rx="3" />
+              <rect x="100" y="206" width="192" height="130" stroke-width="2" />
+              <!-- printer slot + strip coming out -->
+              <rect x="148" y="414" width="96" height="16" rx="3" />
+              <path d="M150 400h92" stroke-width="2" />
+              <rect x="176" y="430" width="40" height="106" fill="#fff" stroke-width="2.4" />
+              <path d="M181 438h30v20h-30zM181 463h30v20h-30zM181 488h30v20h-30zM181 513h30v18h-30z" stroke-width="1.6" />
+              <!-- curtain rod + curtain -->
+              <path d="M338 190h136" stroke-width="3.4" />
+              <path d="M346 192c-6 60 8 120-2 180 6 40-4 70 4 96" stroke-width="2.2" />
+              <path d="M366 192c8 60-6 120 4 180-6 40 6 70-2 96" stroke-width="2.2" />
+              <path d="M388 192c-6 70 8 130-2 190 4 30-2 60 2 86" stroke-width="2.2" />
+              <path d="M412 192c6 60-6 120 2 184-4 36 4 64-2 92" stroke-width="2.2" />
+              <path d="M436 192c-6 60 6 124-4 186 4 30-2 60 4 90" stroke-width="2.2" />
+              <path d="M458 192c6 66-6 126 2 188-4 34 2 60-2 88" stroke-width="2.2" />
+              <!-- stool -->
+              <ellipse cx="406" cy="500" rx="44" ry="11" />
+              <path d="M362 500v8c0 6 88 6 88 0v-8M398 514v34M414 514v34M382 552h48" />
+              <!-- mirror -->
+              <rect x="500" y="196" width="62" height="118" rx="4" />
+              <path d="M512 214l14-12M512 228l22-20M540 298l14-12" stroke-width="2" />
+              <!-- sticker sheet -->
+              <rect x="498" y="352" width="66" height="84" rx="4" stroke-width="2.4" />
+              <!-- floor -->
+              <path d="M20 566h600" stroke-width="2.4" />
+              <path d="M40 578h40M560 578h50" stroke-width="1.8" />
+            </g>
+            <!-- bulbs on the sign (steady, no blinking) -->
+            <g fill="none" stroke="currentColor" stroke-width="1.8" filter="url(#rough-soft)">
+              <circle cx="176" cy="18" r="5" /><circle cx="226" cy="18" r="5" /><circle cx="276" cy="18" r="5" /><circle cx="326" cy="18" r="5" /><circle cx="376" cy="18" r="5" /><circle cx="426" cy="18" r="5" /><circle cx="476" cy="18" r="5" />
+            </g>
+            <text x="320" y="72" class="sign-text" text-anchor="middle">SELFIE STUDIO</text>
+            <text x="320" y="92" class="sign-sub" text-anchor="middle">by storitellah</text>
+            <!-- sample strips with little sticker pops of colour -->
+            <g filter="url(#rough-soft)" stroke="currentColor" stroke-width="1.6" fill="#fff">
+              <g transform="rotate(-4 130 271)"><rect x="116" y="216" width="28" height="110" /><path d="M120 221h20v22h-20zM120 247h20v22h-20zM120 273h20v22h-20zM120 299h20v22h-20z" fill="none" /></g>
+              <g transform="rotate(3 176 271)"><rect x="162" y="216" width="28" height="110" /><path d="M166 221h20v22h-20zM166 247h20v22h-20zM166 273h20v22h-20zM166 299h20v22h-20z" fill="none" /></g>
+              <g transform="rotate(-2 222 271)"><rect x="208" y="216" width="28" height="110" /><path d="M212 221h20v22h-20zM212 247h20v22h-20zM212 273h20v22h-20zM212 299h20v22h-20z" fill="none" /></g>
+              <g transform="rotate(4 266 271)"><rect x="252" y="216" width="28" height="110" /><path d="M256 221h20v22h-20zM256 247h20v22h-20zM256 273h20v22h-20zM256 299h20v22h-20z" fill="none" /></g>
+            </g>
+            <path d="M174 228c-3-4-9-1-6 4l6 5 6-5c3-5-3-8-6-4z" fill="#ff5f8f" />
+            <path d="M265 280l2 4 4 .5-3 3 .8 4.5-3.8-2-3.8 2 .8-4.5-3-3 4-.5z" fill="#ffc928" />
+            <circle cx="222" cy="310" r="4" fill="#7fd3ff" />
+            <!-- stickers on the sheet -->
+            <path d="M515 374c-4-6-13-1-8 6l8 7 8-7c5-7-4-12-8-6z" fill="#ff5f8f" />
+            <path d="M546 366l3 6 6 1-4.5 4 1 6-5.5-3-5.5 3 1-6-4.5-4 6-1z" fill="#ffc928" />
+            <path d="M510 414a14 14 0 0 1 28 0" fill="none" stroke="#ff8c42" stroke-width="3" />
+            <path d="M514 414a10 10 0 0 1 20 0" fill="none" stroke="#6ad08f" stroke-width="3" />
+            <circle cx="550" cy="414" r="7" fill="#b48cff" />
+            <!-- strip coming out gets a heart -->
+            <path d="M196 470c-2-3-7-1-5 3l5 4 5-4c2-4-3-6-5-3z" fill="#ff5f8f" />
           </svg>
-          <span class="brand-text">
-            <span class="brand-name">Selfie Studio</span>
-            <span class="brand-by">by <span>Storitellah</span></span>
-          </span>
-        </a>
-        <button id="printerChip" class="chip" type="button" aria-haspopup="dialog">
-          <span class="dot"></span><span class="chip-label">Looking for printer…</span>
-        </button>
+
+          <!-- handwritten notes around the booth -->
+          <span class="scribble s-samples">sample strips!</span>
+          <svg class="arrow a-samples" viewBox="0 0 60 50" aria-hidden="true"><path d="M6 8c14 4 28 14 40 30m0 0l-2-11m2 11l-11-3" /></svg>
+          <span class="scribble s-print">prints 2 strips<br />on 4×6 paper</span>
+          <svg class="arrow a-print" viewBox="0 0 60 50" aria-hidden="true"><path d="M8 44c10-6 26-18 38-34m0 0l-11 3m11-3l-1 12" /></svg>
+          <span class="scribble s-stickers">16 stickers<br />inside ✿</span>
+          <span class="badge-free">free!<br /><small>4 poses</small></span>
+
+          <a class="enter-btn" id="enterStudio" href="#studio">
+            step inside
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h12m0 0l-5-5m5 5l-5 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          </a>
+        </div>
+
+        <!-- Right notes: hand-drawn designs -->
+        <div class="notes notes-right">
+          <figure class="note-card tilt-r">
+            <svg viewBox="0 0 120 150" class="note-art" aria-hidden="true">
+              <g filter="url(#rough-soft)" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round">
+                <rect x="34" y="12" width="52" height="62" fill="#fff" stroke-dasharray="3 3" />
+                <rect x="41" y="19" width="38" height="40" />
+                <path d="M41 66h20M71 66h8" stroke-width="1.6" />
+                <rect x="34" y="82" width="52" height="56" fill="#fff" stroke-dasharray="3 3" />
+                <rect x="41" y="89" width="38" height="38" />
+                <circle cx="72" cy="28" r="11" stroke-width="1.6" />
+                <path d="M44 30c6-4 10 4 16 0" stroke-width="1.4" />
+              </g>
+            </svg>
+            <figcaption>vintage postage stamps</figcaption>
+          </figure>
+          <figure class="note-card tilt-l">
+            <svg viewBox="0 0 120 150" class="note-art" aria-hidden="true">
+              <g filter="url(#rough-soft)" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round">
+                <rect x="20" y="30" width="80" height="62" rx="3" />
+                <circle cx="60" cy="64" r="16" />
+                <path d="M53 62h0M67 62h0" stroke-width="4" stroke-linecap="round" />
+                <path d="M54 70c3 3 9 3 12 0" stroke-width="2" />
+              </g>
+              <path d="M44 40l4-10 4 8 5-9 4 9 5-8 4 10z" fill="#ffc928" stroke="#1d1b19" stroke-width="1.6" />
+              <path d="M30 86c-3-5-11-1-7 5l7 6 7-6c4-6-4-10-7-5z" fill="#ff5f8f" />
+              <path d="M90 40l2 5 5 1-4 3 1 5-4-3-4 3 1-5-4-3 5-1z" fill="#7fd3ff" />
+              <rect x="70" y="100" width="40" height="16" rx="8" fill="#b48cff" />
+              <text x="90" y="112" text-anchor="middle" class="tiny-badge">BFF</text>
+            </svg>
+            <figcaption>fun stickers</figcaption>
+          </figure>
+        </div>
       </div>
-    </header>
 
-    <main class="studio">
-      <!-- Camera stage -->
-      <section class="stage" aria-label="Camera">
-        <div class="viewfinder" id="viewfinder">
-          <canvas id="preview" aria-label="Live camera preview"></canvas>
-          <div class="frame-corners" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-          <div id="stampGuide" class="stamp-guide" hidden aria-hidden="true"></div>
-          <div id="lensCue" class="lens-cue" hidden>Look into the camera lens</div>
-          <div id="countdown" class="countdown" aria-live="assertive"></div>
-          <div id="flash" class="flash" aria-hidden="true"></div>
-          <div id="cameraMsg" class="camera-msg" hidden>
-            <p class="camera-msg-title">Warming up the camera…</p>
-            <p class="camera-msg-body">Allow camera access when your browser asks.</p>
-            <button id="retryCamera" class="btn btn-light" type="button" hidden>Try again</button>
-          </div>
-          <div class="shot-dots" id="shotDots" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
-        </div>
-        <div class="stage-controls">
-          <button id="shutter" class="shutter" type="button" disabled>
-            <span class="shutter-ring"></span>
-            <span class="shutter-label">Take Photos</span>
+      <footer class="home-foot">
+        <p class="made-by">made by <a href="https://storitellah.com" target="_blank" rel="noopener">storitellah</a>
+          <a class="ig-link" href="https://instagram.com/storitellah" target="_blank" rel="noopener" aria-label="Storitellah on Instagram"><svg><use href="#i-instagram" /></svg>@storitellah</a>
+        </p>
+        <nav class="foot-links" aria-label="More">
+          <a href="faq.html">FAQ</a>
+          <a href="privacy.html">Privacy policy</a>
+          <a href="#support" class="support-toggle" id="supportToggle">Support the project</a>
+        </nav>
+      </footer>
+    </section>
+
+    <!-- ═════════════════════════ STUDIO ═════════════════════════ -->
+    <section id="studio" class="studio-view" aria-label="Photo booth">
+      <header class="topbar">
+        <a class="back-home" href="#home" id="backHome" aria-label="Back to the overview">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H7m0 0l5-5m-5 5l5 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        </a>
+        <a class="brand" href="https://storitellah.com" target="_blank" rel="noopener">
+          <span class="brand-name">Selfie Studio</span>
+          <span class="brand-by">by storitellah</span>
+        </a>
+        <div class="topbar-right">
+          <button id="printerChip" class="chip" type="button" aria-haspopup="dialog">
+            <svg class="chip-icon"><use href="#i-printer" /></svg>
+            <span class="dot"></span><span class="chip-label">Looking for printer…</span>
           </button>
-          <p class="hint">Press <kbd>Space</kbd> to start · four photos, three seconds apart</p>
+          <a class="ig-btn" href="https://instagram.com/storitellah" target="_blank" rel="noopener" aria-label="Storitellah on Instagram"><svg><use href="#i-instagram" /></svg></a>
         </div>
-      </section>
+      </header>
 
-      <!-- Live strip -->
-      <section class="strip-col" aria-label="Your strip">
-        <div class="strip-holder"><canvas id="stripPreview"></canvas></div>
-        <p class="strip-size">2 × 6 in strip<br />prints two to a 4 × 6</p>
-      </section>
+      <main class="studio">
+        <!-- Controls -->
+        <aside class="panel sketch" aria-label="Studio settings">
+          <nav class="panel-tabs" role="tablist" aria-label="Settings">
+            <button type="button" role="tab" data-tab="stickers" aria-selected="true">stickers</button>
+            <button type="button" role="tab" data-tab="look" aria-selected="false">look</button>
+            <button type="button" role="tab" data-tab="strip" aria-selected="false">strip</button>
+            <button type="button" role="tab" data-tab="camera" aria-selected="false">camera</button>
+            <button type="button" role="tab" data-tab="print" aria-selected="false">print</button>
+          </nav>
 
-      <!-- Controls -->
-      <aside class="panel" aria-label="Studio settings">
-        <div class="panel-section stickers-section">
-          <h2>Stickers <span class="spark-inline">✦</span></h2>
-          <div class="sticker-grid" id="stickerGrid" role="group" aria-label="Stickers"></div>
-          <div class="sticker-actions">
-            <button id="stickerSurprise" class="btn btn-ghost btn-small" type="button">Surprise me!</button>
-            <button id="stickerClear" class="btn btn-ghost btn-small" type="button">No stickers</button>
-          </div>
-        </div>
-
-        <div class="panel-section">
-          <h2>Light &amp; look</h2>
-          <div class="tabs" role="tablist" id="lookTabs"></div>
-          <div class="looks" id="looks" role="listbox" aria-label="Looks"></div>
-        </div>
-
-        <div class="panel-section">
-          <h2>Strip</h2>
-          <div class="backdrops" id="backdrops" role="radiogroup" aria-label="Background colour"></div>
-          <label class="row switch"><input id="tilt" type="checkbox" /><span></span> Tilt photos like snapshots</label>
-          <label class="row switch"><input id="postage" type="checkbox" /><span></span> Vintage postage stamps</label>
-          <div id="stampOptions" class="stamp-options" hidden>
-            <div class="segmented" role="radiogroup" aria-label="Stamp shape">
-              <button type="button" role="radio" data-shape="portrait"><i class="shape-portrait"></i>Portrait</button>
-              <button type="button" role="radio" data-shape="square"><i class="shape-square"></i>Square</button>
+          <div class="panel-body">
+            <div class="panel-section" data-panel="stickers" role="tabpanel">
+              <h2>Pick your stickers <span class="hand-note">tap to stick ✿</span></h2>
+              <div class="sticker-grid" id="stickerGrid" role="group" aria-label="Stickers"></div>
+              <div class="sticker-actions">
+                <button id="stickerSurprise" class="btn btn-ghost btn-small" type="button">surprise me!</button>
+                <button id="stickerClear" class="btn btn-ghost btn-small" type="button">no stickers</button>
+              </div>
             </div>
-            <input id="stampText" type="text" maxlength="30" placeholder="Stamp text (optional)" autocomplete="off" aria-label="Stamp text" />
-            <input id="stampValues" type="text" maxlength="40" placeholder="Stamp values, e.g. 10, 25, 50, 100 (optional)" autocomplete="off" aria-label="Stamp values" />
+
+            <div class="panel-section" data-panel="look" role="tabpanel" hidden>
+              <h2>Light &amp; look</h2>
+              <div class="tabs" role="tablist" id="lookTabs"></div>
+              <div class="looks" id="looks" role="listbox" aria-label="Looks"></div>
+            </div>
+
+            <div class="panel-section" data-panel="strip" role="tabpanel" hidden>
+              <h2>Strip style</h2>
+              <div class="backdrops" id="backdrops" role="radiogroup" aria-label="Strip background colour"></div>
+              <label class="row switch"><input id="tilt" type="checkbox" /><span></span> tilt photos like snapshots</label>
+              <label class="row switch"><input id="postage" type="checkbox" /><span></span> vintage postage stamps</label>
+              <div id="stampOptions" class="stamp-options" hidden>
+                <div class="segmented" role="radiogroup" aria-label="Stamp shape">
+                  <button type="button" role="radio" data-shape="portrait"><i class="shape-portrait"></i>portrait</button>
+                  <button type="button" role="radio" data-shape="square"><i class="shape-square"></i>square</button>
+                </div>
+                <input id="stampText" type="text" maxlength="30" placeholder="stamp text (optional)" autocomplete="off" aria-label="Stamp text" />
+                <input id="stampValues" type="text" maxlength="40" placeholder="stamp values, e.g. 10, 25, 50, 100" autocomplete="off" aria-label="Stamp values" />
+              </div>
+              <input id="caption" type="text" maxlength="40" placeholder="add a caption (optional)" autocomplete="off" aria-label="Caption" />
+              <p class="note">The date and time print on every strip. The caption and stamp text only print if you type them.</p>
+            </div>
+
+            <div class="panel-section" data-panel="camera" role="tabpanel" hidden>
+              <h2>Camera</h2>
+              <select id="cameraSelect" aria-label="Camera"></select>
+              <p id="cameraInfo" class="note mono"></p>
+              <label class="row">eye contact guide
+                <select id="eyelineMode">
+                  <option value="auto">automatic</option>
+                  <option value="top">top of screen (built-in camera)</option>
+                  <option value="lens">camera lens (external camera)</option>
+                  <option value="off">off</option>
+                </select>
+              </label>
+              <label class="row"><input id="mirror" type="checkbox" checked /> mirror the preview and photos</label>
+              <details class="pro-help">
+                <summary>Using a professional camera?</summary>
+                <p>Connect it with an <b>HDMI capture card</b> (such as Elgato Cam Link) or by <b>USB-C in webcam mode</b> (most Canon, Sony, Nikon, Fujifilm and Panasonic cameras). Turn off the camera's on-screen display and auto power-off, then pick it from the list above.</p>
+              </details>
+            </div>
+
+            <div class="panel-section" data-panel="print" role="tabpanel" hidden>
+              <h2>Printing</h2>
+              <label class="row switch"><input id="autoPrint" type="checkbox" checked /><span></span> print automatically when a Wi-Fi or Bluetooth printer is found</label>
+              <label class="row">copies
+                <select id="copies"><option>1</option><option>2</option><option>3</option><option>4</option></select>
+                <small>(each 4×6 sheet = 2 strips)</small>
+              </label>
+              <button id="openPrinter" class="btn btn-ghost btn-small" type="button">printer settings…</button>
+              <p class="note">Printers are found by the Selfie Studio app running on a computer on the same Wi-Fi (or paired with it over Bluetooth). Without it, Print uses your device's print or share sheet.</p>
+            </div>
           </div>
-          <input id="caption" type="text" maxlength="40" placeholder="Add a caption (optional)" autocomplete="off" aria-label="Caption" />
-          <p class="note">Date and time are printed on every strip. The caption and stamp text only print if you type them.</p>
-        </div>
+        </aside>
 
-        <div class="panel-section">
-          <h2>Camera</h2>
-          <select id="cameraSelect" aria-label="Camera"></select>
-          <p id="cameraInfo" class="note mono"></p>
-          <label class="row">Eye contact guide
-            <select id="eyelineMode">
-              <option value="auto">Automatic</option>
-              <option value="top">Top of screen (built-in camera)</option>
-              <option value="lens">Camera lens (external camera)</option>
-              <option value="off">Off</option>
-            </select>
-          </label>
-          <label class="row"><input id="mirror" type="checkbox" checked /> Mirror the preview and photos</label>
-          <details class="pro-help">
-            <summary>Using a professional camera?</summary>
-            <p>Connect it with an <b>HDMI capture card</b> (such as Elgato Cam Link) or by <b>USB-C in webcam mode</b> (most Canon, Sony, Nikon, Fujifilm and Panasonic cameras). Turn off the camera's on-screen display and auto power-off, then pick it from the list above.</p>
-          </details>
-        </div>
+        <!-- Camera stage -->
+        <section class="stage" aria-label="Camera">
+          <div class="vf-wrap">
+            <div class="viewfinder sketch" id="viewfinder">
+              <canvas id="preview" aria-label="Live camera preview"></canvas>
+              <div class="frame-corners" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+              <div id="stampGuide" class="stamp-guide" hidden aria-hidden="true"></div>
+              <div id="lensCue" class="lens-cue" hidden>look into the camera lens</div>
+              <div id="countdown" class="countdown" aria-live="assertive"></div>
+              <div id="flash" class="flash" aria-hidden="true"></div>
+              <div id="cameraMsg" class="camera-msg" hidden>
+                <p class="camera-msg-title">Warming up the camera…</p>
+                <p class="camera-msg-body">Allow camera access when your browser asks.</p>
+                <button id="retryCamera" class="btn btn-light" type="button" hidden>try again</button>
+              </div>
+              <div class="shot-dots" id="shotDots" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+            </div>
+          </div>
+          <div class="stage-controls">
+            <button id="shutter" class="shutter" type="button" disabled>
+              <span class="shutter-ring"></span>
+              <span class="shutter-label">take photos</span>
+            </button>
+            <p class="hint">press <kbd>space</kbd> · four photos, three seconds apart</p>
+          </div>
+        </section>
 
-        <div class="panel-section">
-          <h2>Printing</h2>
-          <label class="row switch"><input id="autoPrint" type="checkbox" checked /><span></span> Print automatically when a printer is connected</label>
-          <label class="row">Copies
-            <select id="copies"><option>1</option><option>2</option><option>3</option><option>4</option></select>
-            <small>(each sheet = 2 strips)</small>
-          </label>
-          <button id="openPrinter" class="btn btn-ghost btn-small" type="button">Printer settings…</button>
-        </div>
-      </aside>
-    </main>
+        <!-- Live strip -->
+        <section class="strip-col" aria-label="Your strip">
+          <div class="strip-holder"><canvas id="stripPreview"></canvas></div>
+          <p class="strip-size scribble">your strip ↑<br />2×6 · two per 4×6</p>
+        </section>
+      </main>
+    </section>
 
-    <footer class="support" id="support">
+    <!-- Support (shared, opened from either view) -->
+    <dialog id="supportDialog" class="sheet-dialog small" aria-labelledby="supportTitle">
+      <h2 id="supportTitle">Support Selfie Studio</h2>
       <p id="supportMessage"></p>
       <div class="support-links" id="supportLinks"></div>
-      <p class="support-credit">Made with care by <a href="https://storitellah.com" target="_blank" rel="noopener">Storitellah</a></p>
-    </footer>
+      <p class="muted small-print">Follow <a href="https://instagram.com/storitellah" target="_blank" rel="noopener">@storitellah</a> on Instagram for new stickers and features.</p>
+      <div class="dialog-actions"><button class="btn btn-ghost" type="button" data-close>close</button></div>
+    </dialog>
 
     <!-- Review -->
-    <dialog id="review" class="sheet-dialog" aria-labelledby="reviewTitle">
+    <dialog id="review" class="sheet-dialog review-dialog" aria-labelledby="reviewTitle">
       <div class="review">
         <div class="review-strip"><img id="reviewStrip" alt="Your photo strip" /></div>
         <div class="review-side">
-          <h2 id="reviewTitle">Fresh off the press <span class="spark-inline">✦</span></h2>
+          <h2 id="reviewTitle">Fresh off the press! <span class="spark-inline">✦</span></h2>
           <p id="printStatus" class="print-status" role="status"></p>
-          <div class="review-looks">
-            <label>Look <select id="reviewLook"></select></label>
-            <label>Background <select id="reviewBackdrop"></select></label>
-            <label class="row"><input id="reviewTilt" type="checkbox" /> Tilt</label>
-            <label class="row"><input id="reviewPostage" type="checkbox" /> Stamps</label>
-            <label id="reviewShapeWrap">Shape <select id="reviewShape"><option value="portrait">Portrait</option><option value="square">Square</option></select></label>
-            <label class="review-caption">Caption <input id="reviewCaption" type="text" maxlength="40" placeholder="Optional" autocomplete="off" /></label>
-            <label class="review-caption" id="reviewStampWrap">Stamp text <input id="reviewStampText" type="text" maxlength="30" placeholder="Optional" autocomplete="off" /></label>
+
+          <div class="review-actions">
+            <button id="shareStrip" class="btn btn-accent btn-big" type="button"><svg><use href="#i-share" /></svg>share</button>
+            <button id="downloadStrip" class="btn" type="button"><svg><use href="#i-save" /></svg>save strip</button>
+            <button id="printNow" class="btn btn-ghost" type="button"><svg><use href="#i-printer" /></svg>print</button>
+            <button id="newSession" class="btn btn-ghost" type="button">new strip ↺</button>
           </div>
-          <div class="review-stickers">
-            <span>Stickers</span>
-            <div class="sticker-grid compact" id="reviewStickerGrid" role="group" aria-label="Stickers"></div>
+          <div id="shareMenu" class="share-menu" hidden>
+            <p class="share-menu-title">Send it to…</p>
+            <button type="button" data-share="whatsapp"><svg><use href="#i-whatsapp" /></svg>WhatsApp</button>
+            <button type="button" data-share="copy"><svg><use href="#i-copy" /></svg>copy image</button>
+            <button type="button" data-share="save"><svg><use href="#i-save" /></svg>save to this device</button>
+            <p class="note">AirDrop and other apps appear in your device's share sheet on iPhone, iPad, Mac (Safari), Android and Windows.</p>
           </div>
+
+          <details class="review-edit">
+            <summary>change the look, stickers or text</summary>
+            <div class="review-looks">
+              <label>look <select id="reviewLook"></select></label>
+              <label>background <select id="reviewBackdrop"></select></label>
+              <label class="row"><input id="reviewTilt" type="checkbox" /> tilt</label>
+              <label class="row"><input id="reviewPostage" type="checkbox" /> stamps</label>
+              <label id="reviewShapeWrap">shape <select id="reviewShape"><option value="portrait">portrait</option><option value="square">square</option></select></label>
+              <label class="review-caption">caption <input id="reviewCaption" type="text" maxlength="40" placeholder="optional" autocomplete="off" /></label>
+              <label class="review-caption" id="reviewStampWrap">stamp text <input id="reviewStampText" type="text" maxlength="30" placeholder="optional" autocomplete="off" /></label>
+            </div>
+            <div class="review-stickers">
+              <div class="sticker-grid compact" id="reviewStickerGrid" role="group" aria-label="Stickers"></div>
+            </div>
+          </details>
+
           <div class="sheet-preview" aria-label="4 by 6 print preview">
             <img id="reviewSheet" alt="4 by 6 print sheet with two strips" />
-            <span class="sheet-caption">4 × 6 print · cut down the middle for two strips</span>
-          </div>
-          <div class="review-actions">
-            <button id="downloadStrip" class="btn" type="button">Download strip (JPG)</button>
-            <button id="downloadSheet" class="btn btn-ghost" type="button">Download 4×6 sheet</button>
-            <button id="printNow" class="btn btn-ghost" type="button">Print</button>
-            <button id="newSession" class="btn btn-accent" type="button">New strip</button>
+            <span class="sheet-caption">4×6 print · cut down the middle for two strips<br /><button id="downloadSheet" class="link-btn" type="button">save the 4×6 sheet</button></span>
           </div>
         </div>
       </div>
@@ -191,20 +396,20 @@
     <!-- Printer settings -->
     <dialog id="printerDialog" class="sheet-dialog small" aria-labelledby="printerTitle">
       <form method="dialog" class="printer-form">
-        <h2 id="printerTitle">Wi-Fi printer</h2>
+        <h2 id="printerTitle">Printer</h2>
         <p id="printerDetail" class="muted"></p>
-        <h3>Printers on this network</h3>
+        <h3>Printers found (Wi-Fi, Bluetooth, USB)</h3>
         <ul id="printerList" class="printer-list"></ul>
-        <button id="scanPrinters" class="btn btn-ghost btn-small" type="button">Scan again</button>
+        <button id="scanPrinters" class="btn btn-ghost btn-small" type="button">scan again</button>
         <h3>Or enter its address</h3>
         <input id="printerUri" type="text" placeholder="ipp://192.168.1.40/ipp/print" autocomplete="off" />
-        <label class="row"><input id="borderless" type="checkbox" checked /> Borderless (edge-to-edge) 4×6</label>
+        <label class="row"><input id="borderless" type="checkbox" checked /> borderless (edge-to-edge) 4×6</label>
         <div class="dialog-actions">
-          <button id="useAuto" class="btn btn-ghost" type="button">Auto-detect</button>
-          <button id="savePrinter" class="btn" type="button">Use this printer</button>
-          <button id="closePrinter" class="btn btn-ghost" type="button">Close</button>
+          <button id="useAuto" class="btn btn-ghost" type="button">auto-detect</button>
+          <button id="savePrinter" class="btn" type="button">use this printer</button>
+          <button id="closePrinter" class="btn btn-ghost" type="button">close</button>
         </div>
-        <p class="muted small-print">No printer server? The <b>Print</b> button falls back to your browser's print dialog with a 4×6 page set up for you.</p>
+        <p class="muted small-print">Bluetooth printers: pair the printer with the computer running Selfie Studio first (System Settings → Bluetooth, then add it as a printer). It will then appear here.</p>
       </form>
     </dialog>
 

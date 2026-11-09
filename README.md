@@ -2,6 +2,8 @@
 
 A free photo booth that runs in a browser, by [Storitellah](https://storitellah.com). It shoots four poses, turns them into a classic 2×6 strip, prints automatically to a Wi-Fi printer on 4×6 photo paper, and lets guests download a high-resolution JPG.
 
+Selfie Studio has a hand-drawn sketchbook design. It opens on an overview of a sketched booth with hand-drawn layout ideas around it. **step inside** opens the studio, where the camera, settings tabs and live strip all fit on one laptop screen (a 14-inch MacBook or larger) without scrolling. On phones the studio becomes one scrolling column, with the **take photos** button pinned to the bottom. There's also an [FAQ](public/faq.html), a [privacy policy](public/privacy.html), and a link to [@storitellah on Instagram](https://instagram.com/storitellah).
+
 ## Quick start
 
 ```bash
@@ -22,6 +24,7 @@ Open **http://localhost:8080** on the computer the camera is plugged into. Brows
 | **Strip** | Black, Vintage (aged cream paper) or White background, which also sets the studio's colour scheme. Optional **tilt** gives each photo a slight angle and a white snapshot border. **Vintage postage stamps** turns each photo into a **portrait (4:5) or square** perforated stamp with an engraved frame and a dated postmark on the first stamp. A dashed guide on the camera preview shows what will fit inside the stamp. Any **stamp text** and **values** (for example `10, 25, 50, 100`) are typed in by the host and start blank each time, like the caption. Stamps work with or without tilt. The **date and time** of the session is printed on every strip. A **caption** prints only when one is typed. It is never remembered, so every event starts blank. |
 | **Download** | A single 2×6 in strip, saved as a JPG at **600 DPI (1200 × 3600 px)**. A "Download 4×6 sheet" button is also available. |
 | **Print** | A **4×6 in portrait sheet with two identical strips side by side** (1200 × 1800 px at 300 DPI). Cut along the long centre line to get two 2×6 strips. |
+| **Share** | **share** opens the device's share sheet (WhatsApp, AirDrop, Messages, Instagram…) with the strip attached, on iPhone, iPad, Android, Mac Safari and Windows. Where a browser can't share files, a small menu offers WhatsApp (copies the strip and opens WhatsApp), copy image, and save. |
 | **Restyle** | On the review screen you can change the look, background, tilt, stickers, stamp shape, stamp text or caption, then download or print again. |
 
 ## Devices and browsers
@@ -44,6 +47,8 @@ The server looks for printers on your network the same way AirPrint and Mopria d
 - The chip in the top-right corner shows the printer's status. Click it to pick a different printer, enter an address yourself, or turn borderless printing off.
 - To fix the printer at startup: `PRINTER_URI=ipp://192.168.1.40/ipp/print npm start`
 - A printer already installed on the booth computer also works: `PRINTER_URI=cups:Canon_SELPHY npm start`
+- **Bluetooth and USB printers:** pair or plug the printer into the computer running `npm start` and add it in the system's printer settings. It then shows up next to the Wi-Fi printers (marked Bluetooth or USB) and prints automatically too.
+- **Printer found later:** if the photos were taken before any printer was on, the waiting strip prints automatically the moment a printer is detected. The server checks for new printers every 20 seconds.
 - Load the printer's photo tray with 4×6 paper.
 
 **No server?** If the page is opened without `npm start` (for example, on static hosting), the **Print** button opens the browser's print dialog with a 4×6, zero-margin page already set up. To print silently without the dialog, launch Chrome with `--kiosk-printing` and set the photo printer as the system default.

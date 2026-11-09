@@ -95,6 +95,7 @@ async function startCamera() {
 function stopCamera() {
   state.stream?.getTracks().forEach((t) => t.stop());
   state.stream = null;
+  state.video.srcObject = null;
 }
 
 function activeCameraLabel() {
@@ -322,7 +323,6 @@ function selectBackdrop(id) {
   settings.backdrop = id;
   persist();
   document.documentElement.dataset.backdrop = id;
-  document.querySelector('meta[name="theme-color"]').content = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
   buildBackdrops();
   refreshStripPreview();
 }
@@ -344,7 +344,7 @@ function syncStampUi() {
     const slot = stripLayout().frames[0];
     const hasBand = Boolean(settings.stampText.trim() || parseStampValues(settings.stampValues).length);
     const { aspect } = stampGeometry(settings.stampShape, slot.w, slot.h, hasBand);
-    guide.style.width = `${Math.min(100, (aspect / FRAME_ASPECT) * 100)}%`;
+    guide.style.setProperty('--w', `${Math.min(100, (aspect / FRAME_ASPECT) * 100)}%`);
   }
 }
 
@@ -471,25 +471,43 @@ function setPrintStatus(text, kind = '') {
 }
 
 async function finishSession() {
+  $('shareMenu').hidden = true;
   setPrintStatus('Developing…');
   syncReviewSelects();
   await buildOutputs();
   const dlg = $('review');
   openDialog(dlg);
 
+  state.pendingPrint = false;
   if (settings.autoPrint && state.printer.connected && state.printer.ready) {
     await printSheet();
-  } else if (settings.autoPrint && state.printer.connected) {
-    setPrintStatus(`Printer isn't ready (${(state.printer.reasons || []).join(', ') || state.printer.state}). Press Print once it is.`, 'err');
-  } else if (settings.autoPrint) {
-    setPrintStatus('No Wi-Fi printer connected. Save your strip, or press Print to use a printer from this device.');
+  } else if (settings.autoPrint && state.printer.server) {
+    // Remember it: the moment a Wi-Fi or Bluetooth printer turns up, it prints.
+    state.pendingPrint = true;
+    setPrintStatus(
+      state.printer.connected
+        ? `Printer isn't ready (${(state.printer.reasons || []).join(', ') || state.printer.state}). It will print as soon as it is.`
+        : 'Looking for a Wi-Fi or Bluetooth printer… your strip will print as soon as one is found. You can share or save it now.',
+    );
+    watchForPrinter();
   } else {
-    setPrintStatus('Ready to download or print.');
+    setPrintStatus('Ready to share, save or print.');
   }
 }
 
+// While a strip is waiting, check for printers more often.
+let printerWatch = null;
+function watchForPrinter() {
+  clearInterval(printerWatch);
+  printerWatch = setInterval(() => {
+    if (!state.pendingPrint) clearInterval(printerWatch);
+    else if (!state.busy) refreshPrinter();
+  }, 4000);
+}
+
 async function printSheet() {
-  if (!state.lastStrip) return;
+  if (!state.lastStrip || state.printing) return;
+  state.printing = true;
   const btn = $('printNow');
   btn.disabled = true;
   try {
@@ -511,6 +529,7 @@ async function printSheet() {
   } catch (err) {
     setPrintStatus(`Couldn't print: ${err.message}`, 'err');
   } finally {
+    state.printing = false;
     btn.disabled = false;
     refreshPrinter();
   }
@@ -520,6 +539,70 @@ function fileName(kind) {
   const d = state.lastStrip?.stamp || new Date();
   const p = (n) => String(n).padStart(2, '0');
   return `selfie-studio-${kind}-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.jpg`;
+}
+
+// ---------------------------------------------------------------------------
+// Sharing: the system share sheet (WhatsApp, AirDrop, Messages, Instagram…)
+// where the browser supports sending files, otherwise a small menu.
+
+const SHARE_TEXT = 'Made with Selfie Studio by Storitellah ✨';
+
+async function shareStrip() {
+  if (!state.lastStrip) return;
+  const file = stripFile();
+  if (canShareFiles(file)) {
+    try {
+      await navigator.share({ files: [file], title: 'My photo strip', text: SHARE_TEXT });
+      return;
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+    }
+  }
+  $('shareMenu').hidden = !$('shareMenu').hidden;
+}
+
+async function stripAsPng() {
+  const img = await createImageBitmap(state.lastStrip.stripJpg);
+  const c = document.createElement('canvas');
+  c.width = img.width;
+  c.height = img.height;
+  c.getContext('2d').drawImage(img, 0, 0);
+  img.close?.();
+  const blob = await new Promise((res) => c.toBlob(res, 'image/png'));
+  releaseCanvas(c);
+  return blob;
+}
+
+async function copyStrip() {
+  if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') throw new Error('copy not supported');
+  // Safari wants the promise handed over synchronously inside the click.
+  await navigator.clipboard.write([new ClipboardItem({ 'image/png': stripAsPng() })]);
+}
+
+async function shareVia(kind) {
+  if (!state.lastStrip) return;
+  if (kind === 'save') return saveFile(stripFile(), state.lastStrip.stripUrl);
+  if (kind === 'copy') {
+    try {
+      await copyStrip();
+      showToast('Strip copied — paste it anywhere.');
+    } catch {
+      showToast("This browser can't copy images. Use “save to this device” instead.");
+    }
+    return;
+  }
+  if (kind === 'whatsapp') {
+    // WhatsApp links can't carry a photo, so copy it first, then open the chat picker.
+    let copied = false;
+    try {
+      await copyStrip();
+      copied = true;
+    } catch {
+      saveFile(stripFile(), state.lastStrip.stripUrl);
+    }
+    window.open(`https://wa.me/?text=${encodeURIComponent(SHARE_TEXT)}`, '_blank', 'noopener');
+    showToast(copied ? 'Strip copied — pick a chat and paste it in (⌘V / Ctrl+V).' : 'Strip saved — attach it in your WhatsApp chat.');
+  }
 }
 
 function stripFile() {
@@ -610,15 +693,30 @@ function setChip(kind, text) {
   chip.querySelector('.chip-label').textContent = text;
 }
 
+const TRANSPORT = { wifi: 'Wi-Fi', bluetooth: 'Bluetooth', usb: 'USB', network: 'network' };
+
 async function refreshPrinter() {
   const p = await getPrinterStatus();
+  const wasReady = state.printer.connected && state.printer.ready;
   state.printer = p;
-  if (!p.server) setChip('idle', 'Browser printing');
-  else if (p.connected && p.ready) setChip('ready', `${p.name || 'Printer'} · ready`);
+  const via = TRANSPORT[p.transport] ? ` · ${TRANSPORT[p.transport]}` : '';
+  if (!p.server) setChip('idle', 'print from this device');
+  else if (p.connected && p.ready) setChip('ready', `${p.name || 'Printer'}${via} · ready`);
   else if (p.connected) setChip('error', `${p.name || 'Printer'} · ${p.reasons?.[0] || p.state}`);
-  else setChip('idle', p.uri ? 'Printer offline' : 'No printer found');
+  else setChip('idle', p.uri ? 'printer offline' : 'looking for printers…');
+
+  // A printer just appeared: print whatever is waiting.
+  if (p.connected && p.ready && state.pendingPrint && settings.autoPrint && state.lastStrip && !state.printing) {
+    state.pendingPrint = false;
+    showToast(`Found ${p.name || 'a printer'}${via} — printing your strip!`);
+    printSheet();
+  } else if (p.connected && p.ready && !wasReady && p.name && printerChecked && view === 'studio') {
+    showToast(`Printer connected: ${p.name}${via}`);
+  }
+  printerChecked = true;
   return p;
 }
+let printerChecked = false;
 
 async function openPrinterDialog() {
   const dlg = $('printerDialog');
@@ -728,6 +826,61 @@ window.addEventListener('unhandledrejection', (e) => showToast(`Something went w
 // ---------------------------------------------------------------------------
 // Wire up
 
+// ---------------------------------------------------------------------------
+// Overview ↔ studio. The camera only switches on inside the studio.
+
+let view = 'home';
+function showView(next, { push = true } = {}) {
+  view = next === 'studio' ? 'studio' : 'home';
+  document.documentElement.dataset.view = view;
+  if (push && location.hash !== `#${view}`) history.pushState(null, '', view === 'studio' ? '#studio' : location.pathname);
+  window.scrollTo(0, 0);
+  if (view === 'studio') {
+    previewSized = false;
+    if (!state.stream) startCamera().then(updateThumbs);
+    refreshStripPreview();
+  } else if (!state.busy) {
+    stopCamera();
+    $('shutter').disabled = true;
+  }
+  updateEyeline();
+}
+
+function setupViews() {
+  view = location.hash === '#studio' ? 'studio' : 'home';
+  document.documentElement.dataset.view = view;
+  $('enterStudio').onclick = (e) => {
+    e.preventDefault();
+    showView('studio');
+  };
+  $('backHome').onclick = (e) => {
+    e.preventDefault();
+    showView('home');
+  };
+  window.addEventListener('popstate', () => showView(location.hash === '#studio' ? 'studio' : 'home', { push: false }));
+}
+
+function setupPanelTabs() {
+  const tabs = document.querySelectorAll('.panel-tabs [data-tab]');
+  const select = (name) => {
+    for (const t of tabs) t.setAttribute('aria-selected', String(t.dataset.tab === name));
+    for (const p of document.querySelectorAll('[data-panel]')) p.hidden = p.dataset.panel !== name;
+    try {
+      localStorage.setItem('selfiestudio-tab', name);
+    } catch {
+      /* ignore */
+    }
+  };
+  for (const t of tabs) t.onclick = () => select(t.dataset.tab);
+  let saved = 'stickers';
+  try {
+    saved = localStorage.getItem('selfiestudio-tab') || saved;
+  } catch {
+    /* ignore */
+  }
+  select(saved);
+}
+
 function init() {
   document.documentElement.dataset.backdrop = settings.backdrop;
   buildLookPicker();
@@ -735,6 +888,15 @@ function init() {
   selectBackdrop(settings.backdrop);
 
   buildSupport();
+  setupViews();
+  setupPanelTabs();
+  $('shareStrip').onclick = shareStrip;
+  for (const b of document.querySelectorAll('[data-share]')) b.onclick = () => shareVia(b.dataset.share);
+  $('supportToggle').onclick = (e) => {
+    e.preventDefault();
+    openDialog($('supportDialog'));
+  };
+  for (const b of document.querySelectorAll('[data-close]')) b.onclick = () => closeDialog(b.closest('dialog'));
   const caption = $('caption');
   caption.oninput = () => {
     settings.caption = caption.value;
@@ -810,7 +972,7 @@ function init() {
   $('shutter').onclick = runSession;
   $('retryCamera').onclick = startCamera;
   document.addEventListener('keydown', (e) => {
-    if (e.code === 'Space' && !e.repeat && !document.querySelector('dialog[open]') && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName)) {
+    if (e.code === 'Space' && !e.repeat && view === 'studio' && !document.querySelector('dialog[open]') && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName)) {
       e.preventDefault();
       runSession();
     }
@@ -857,7 +1019,7 @@ function init() {
 
   // Phones and tablets stop the camera when the app is backgrounded; bring it back.
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState !== 'visible' || state.busy) return;
+    if (document.visibilityState !== 'visible' || state.busy || view !== 'studio') return;
     const track = state.stream?.getVideoTracks()[0];
     if (!track || track.readyState === 'ended') startCamera();
     else state.video.play().catch(() => {});
@@ -867,7 +1029,7 @@ function init() {
   refreshPrinter();
   setInterval(() => !state.busy && refreshPrinter(), 15000);
   document.fonts?.ready.then(refreshStripPreview);
-  startCamera().then(updateThumbs);
+  if (view === 'studio') startCamera().then(updateThumbs);
   requestAnimationFrame(renderLoop);
 }
 

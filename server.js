@@ -141,6 +141,10 @@ server.listen(PORT, HOST, () => {
   console.log(`  ➜ This computer: http://localhost:${PORT}`);
   for (const u of lan) console.log(`  ➜ On your network: ${u}  (camera needs https or localhost)`);
   console.log(`\n  Searching for Wi-Fi printers…`);
+  // Keep looking, so a printer that is switched on or paired later is picked up.
+  setInterval(() => {
+    if (!printer.config.uri) printer.discover({ force: true }).catch(() => {});
+  }, 20000).unref();
   printer.discover({ force: true }).then((found) => {
     if (found.length) for (const p of found) console.log(`  🖨  ${p.name} — ${p.uri}`);
     else console.log('  No printers found yet. The booth will keep looking (or set PRINTER_URI).');
