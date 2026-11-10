@@ -207,7 +207,7 @@ function buildStickerGrid(container, onChange) {
     b.dataset.sticker = s.id;
     b.title = s.name;
     b.setAttribute('aria-label', s.name);
-    b.append(stickerIcon(s.id, container.classList.contains('compact') ? 52 : 72));
+    b.append(stickerIcon(s.id, Math.round((container.classList.contains('compact') ? 52 : 72) * Math.min(3, window.devicePixelRatio || 1))));
     b.onclick = () => {
       const on = settings.stickers.includes(s.id);
       settings.stickers = on ? settings.stickers.filter((x) => x !== s.id) : [...settings.stickers, s.id];
@@ -986,6 +986,9 @@ function init() {
   selectBackdrop(settings.backdrop);
 
   buildSupport();
+  // The homepage window shows the same die-cut stickers the booth prints.
+  const shelf = $('homeStickers');
+  if (shelf) for (const id of ['bff', 'heart', 'star']) shelf.append(stickerIcon(id, Math.round(110 * Math.min(3, window.devicePixelRatio || 1))));
   setupViews();
   setupPanelTabs();
   $('shareStrip').onclick = shareStrip;

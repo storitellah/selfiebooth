@@ -465,11 +465,42 @@ export function placeStickers(ids, area, frameIndex = 0) {
 
 const cache = new Map();
 
+export const STICKER_INK = '#1d1b19';
+
+/** Paint `sil` (a silhouette) grown by `r` px in `color` onto ctx. */
+function grow(ctx, sil, r, color, tint) {
+  const t = tint.getContext('2d');
+  t.clearRect(0, 0, tint.width, tint.height);
+  t.globalCompositeOperation = 'source-over';
+  t.drawImage(sil, 0, 0);
+  t.globalCompositeOperation = 'source-in';
+  t.fillStyle = color;
+  t.fillRect(0, 0, tint.width, tint.height);
+  // Enough samples around the circle that sharp corners (star points) stay
+  // smooth instead of spiky.
+  for (const k of [1, 0.66, 0.33]) {
+    const steps = Math.max(16, Math.ceil((2 * Math.PI * r * k) / 1.2));
+    for (let i = 0; i < steps; i++) {
+      const a = (i / steps) * Math.PI * 2;
+      ctx.drawImage(tint, Math.cos(a) * r * k, Math.sin(a) * r * k);
+    }
+  }
+  ctx.drawImage(tint, 0, 0);
+}
+
+/**
+ * A die-cut sticker like the ones on the homepage: the art with a thin ink
+ * line, a white cut-out border and a bold ink outline around it all.
+ */
 function renderSticker(sticker, px) {
   const key = `${sticker.id}@${px}`;
   if (cache.has(key)) return cache.get(key);
-  const pad = Math.ceil(px * 0.12);
-  const full = px + pad * 2;
+  const line = Math.max(1, px * 0.022); // thin ink line hugging the art
+  const border = Math.max(2, px * 0.06); // white cut-out margin
+  const outer = Math.max(1.5, px * 0.03); // bold outer ink line
+  const pad = Math.ceil(px * 0.08 + line + border + outer);
+  const full = Math.ceil(px + pad * 2);
+
   const art = document.createElement('canvas');
   art.width = art.height = full;
   const a = art.getContext('2d');
@@ -477,24 +508,17 @@ function renderSticker(sticker, px) {
   a.scale(px / 100, px / 100);
   sticker.draw(a);
 
-  // Die-cut outline: stamp a white silhouette around the artwork.
+  const tint = document.createElement('canvas');
+  tint.width = tint.height = full;
   const out = document.createElement('canvas');
   out.width = out.height = full;
   const o = out.getContext('2d');
-  const sil = document.createElement('canvas');
-  sil.width = sil.height = full;
-  const s = sil.getContext('2d');
-  s.drawImage(art, 0, 0);
-  s.globalCompositeOperation = 'source-in';
-  s.fillStyle = '#ffffff';
-  s.fillRect(0, 0, full, full);
-  const border = Math.max(1.5, px * 0.05);
-  for (let i = 0; i < 16; i++) {
-    const t = (i / 16) * Math.PI * 2;
-    o.drawImage(sil, Math.cos(t) * border, Math.sin(t) * border);
-  }
+  // Outside in: ink outline → white border → thin ink line → art.
+  grow(o, art, line + border + outer, STICKER_INK, tint);
+  grow(o, art, line + border, '#ffffff', tint);
+  grow(o, art, line, STICKER_INK, tint);
   o.drawImage(art, 0, 0);
-  art.width = sil.width = 0;
+  art.width = tint.width = 0;
 
   if (cache.size > 80) {
     for (const c of cache.values()) c.width = 0;
@@ -516,7 +540,7 @@ export function drawStickers(ctx, placed) {
     ctx.translate(p.x, p.y);
     ctx.rotate(p.rot);
     ctx.scale(k, k);
-    ctx.shadowColor = 'rgba(0,0,0,0.3)';
+    ctx.shadowColor = 'rgba(0,0,0,0.16)';
     ctx.shadowBlur = px * 0.06;
     ctx.shadowOffsetY = px * 0.03;
     ctx.drawImage(img, -img.width / 2, -img.height / 2);
