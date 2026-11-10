@@ -15,7 +15,7 @@ export const DOWNLOAD_DPI = 600;
 export const PRINT_DPI = 300;
 
 export const BACKDROPS = {
-  black: { id: 'black', label: 'Black', paper: '#0b0b0c', ink: '#f3ead7', subInk: 'rgba(243,234,215,0.62)', cutMark: '#555', texture: 0 },
+  black: { id: 'black', label: 'Black', paper: '#0b0b0c', ink: '#f3ead7', subInk: 'rgba(243,234,215,0.62)', cutMark: '#9a9a9a', texture: 0 },
   vintage: { id: 'vintage', label: 'Vintage', paper: '#ecdfc3', ink: '#3b2a1c', subInk: 'rgba(59,42,28,0.62)', cutMark: '#a8957a', texture: 1 },
   white: { id: 'white', label: 'White', paper: '#ffffff', ink: '#141414', subInk: 'rgba(20,20,20,0.55)', cutMark: '#c8c8c8', texture: 0 },
 };
@@ -453,6 +453,53 @@ export function renderStrip(
   return canvas;
 }
 
+/**
+ * Dash pattern for the cut line down the middle of the sheet: [y0, y1]
+ * segments in pixels, starting below the scissors mark.
+ */
+export function perforationDashes(H, dpi) {
+  const dash = 0.06 * dpi;
+  const gap = 0.045 * dpi;
+  const start = 0.2 * dpi; // room for the scissors
+  const out = [];
+  for (let y = start; y < H; y += dash + gap) out.push([y, Math.min(H, y + dash)]);
+  return out;
+}
+
+/** A dashed "cut here" perforation with a small scissors mark at the top. */
+function drawPerforation(ctx, S, dpi, colour) {
+  const x = S.cutX;
+  ctx.save();
+  ctx.strokeStyle = colour;
+  ctx.fillStyle = colour;
+  ctx.lineCap = 'round';
+  ctx.lineWidth = Math.max(1.5, dpi * 0.006);
+  ctx.beginPath();
+  for (const [y0, y1] of perforationDashes(S.H, dpi)) {
+    ctx.moveTo(x, y0);
+    ctx.lineTo(x, y1);
+  }
+  ctx.stroke();
+
+  // Scissors, blades pointing down the cut line.
+  const u = dpi * 0.03;
+  ctx.translate(x, dpi * 0.09);
+  ctx.lineWidth = Math.max(1.2, dpi * 0.005);
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.arc(side * u * 0.75, -u * 0.9, u * 0.55, 0, Math.PI * 2); // finger loops
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(side * u * 0.45, -u * 0.45);
+    ctx.lineTo(-side * u * 0.55, u * 2); // blades crossing
+    ctx.stroke();
+  }
+  ctx.beginPath();
+  ctx.arc(0, u * 0.25, u * 0.12, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
 /** Lay two copies of a strip onto a 4x6 portrait sheet. */
 export function renderSheet(strip, { backdrop = 'black', dpi = PRINT_DPI, cutMarks = true, paper = SHEET_IN } = {}) {
   const S = sheetLayout(dpi, paper);
@@ -463,18 +510,7 @@ export function renderSheet(strip, { backdrop = 'black', dpi = PRINT_DPI, cutMar
   ctx.fillStyle = bd.paper;
   ctx.fillRect(0, 0, S.W, S.H);
   for (const r of S.strips) ctx.drawImage(strip, r.x, r.y, r.w, r.h);
-  if (cutMarks) {
-    // Short ticks in the top & bottom margins show where to cut.
-    const len = Math.round(0.07 * dpi);
-    ctx.strokeStyle = bd.cutMark;
-    ctx.lineWidth = Math.max(1, dpi / 300);
-    ctx.beginPath();
-    ctx.moveTo(S.cutX, 0);
-    ctx.lineTo(S.cutX, len);
-    ctx.moveTo(S.cutX, S.H - len);
-    ctx.lineTo(S.cutX, S.H);
-    ctx.stroke();
-  }
+  if (cutMarks) drawPerforation(ctx, S, dpi, bd.cutMark);
   return canvas;
 }
 

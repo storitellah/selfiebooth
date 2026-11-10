@@ -111,3 +111,14 @@ test('SELPHY postcard (100×148 mm) sheet still splits into two equal strips', (
   assert.ok(b.x >= S.cutX - 1e-9 && b.x + b.w <= S.W + 1e-9, 'right strip in the right half');
   assert.ok(Math.abs(a.x - (S.cutX - a.x - a.w)) < 1e-9, 'centred in its half');
 });
+
+import { perforationDashes } from '../public/js/layout.js';
+
+test('the cut line is a perforation running the full height of the sheet', () => {
+  const S = sheetLayout(300);
+  const dashes = perforationDashes(S.H, 300);
+  assert.ok(dashes.length > 40, 'many dashes');
+  assert.ok(dashes[0][0] > 0 && dashes[0][0] < 0.25 * 300, 'starts just below the scissors');
+  assert.ok(dashes.at(-1)[1] >= S.H - 0.11 * 300, 'reaches the bottom');
+  for (let i = 1; i < dashes.length; i++) assert.ok(dashes[i][0] > dashes[i - 1][1], 'gaps between dashes');
+});
