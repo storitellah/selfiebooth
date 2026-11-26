@@ -1,28 +1,31 @@
 {
   "name": "Selfie Studio by Storitellah",
   "short_name": "Selfie Studio",
+  "description": "A free photo booth: four poses, stickers, vintage looks, a 2\u00d76 photo strip and automatic 4\u00d76 printing.",
+  "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "orientation": "any",
   "background_color": "#0f0e0d",
   "theme_color": "#0f0e0d",
   "icons": [
     {
-      "src": "icon-180.png",
-      "sizes": "180x180",
-      "type": "image/png"
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "icon-512.png",
+      "src": "icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml"
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
